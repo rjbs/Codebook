@@ -1,0 +1,150 @@
+#!perl
+use v5.20.0;
+use warnings;
+
+use Getopt::Long::Descriptive;
+
+my ($opt, $usage) = describe_options(
+  '%c %o',
+  [ 'debug|D',    'show debugging output' ],
+  [ 'width|w=i',  'width of cells', { default => 3 } ],
+  [ 'height|h=i', 'height of cells', { default => 1 } ],
+);
+
+use utf8;
+binmode *STDOUT, ':encoding(UTF-8)';
+
+#  1   A maze file, in the first and stupidest form, is a sequence of lines.
+# 8•2  Every line is a sequence of numbers.
+#  4   Every number is a 4-bit number.  *On* sides are linked.
+
+use constant {
+  LINK_N => 1,
+  LINK_E => 2,
+  LINK_S => 4,
+  LINK_W => 8,
+
+  WALL_N => 1,
+  WALL_E => 2,
+  WALL_S => 4,
+  WALL_W => 8,
+};
+
+my @lines = <>;
+chomp @lines;
+
+my $grid = [ map {; [ split /\s+/, $_ ] } @lines ];
+
+my $max_x = $grid->[0]->$#*;
+my $max_y = $grid->$#*;
+
+die "not all rows of uniform length" if grep {; $#$_ != $max_x } @$grid;
+
+for my $y (0 .. $max_y) {
+  for my $x (0 .. $max_x) {
+    my $cell  = $grid->[$y][$x];
+    my $south = $y < $max_y ? $grid->[$y+1][$x] : undef;
+    my $east  = $x < $max_x ? $grid->[$y][$x+1] : undef;
+
+    die "inconsistent vertical linkage at ($x, $y) ($cell v $south)"
+      if $south && ($cell & LINK_S  xor  $south & LINK_N);
+
+    die "inconsistent horizontal linkage at ($x, $y) ($cell v $east)"
+      if $east  && ($cell & LINK_E  xor  $east  & LINK_W);
+  }
+}
+
+# ┌───┬───┬───┐ ╶───────┬───┐
+# │ 0 │ 0 │ 0 │  10  12 │ 0 │
+# ├───┼───┼───┤ ┌───┐   ├───┤
+# │ 0 │ 0 │ 0 │ │ 0 │ 5 │ 0 │
+# ├───┼───┼───┤ ├───┤   └───┤
+# │ 0 │ 0 │ 0 │ │ 0 │ 3  12 │
+# └───┴───┴───┘ └───┴───╴   ╵
+# Every cell takes two vertical rows, plus one more row at the bottom.
+# Every cell takes four columns, plus one final column at the right.
+
+my %WALL = (
+  0       | 0       | 0       | 0       ,=> ' ',
+  0       | 0       | 0       | WALL_W  ,=> '╴',
+  0       | 0       | WALL_S  | 0       ,=> '╷',
+  0       | 0       | WALL_S  | WALL_W  ,=> '┐',
+  0       | WALL_E  | 0       | 0       ,=> '╶',
+  0       | WALL_E  | 0       | WALL_W  ,=> '─',
+  0       | WALL_E  | WALL_S  | 0       ,=> '┌',
+  0       | WALL_E  | WALL_S  | WALL_W  ,=> '┬',
+  WALL_N  | 0       | 0       | 0       ,=> '╵',
+  WALL_N  | 0       | 0       | WALL_W  ,=> '┘',
+  WALL_N  | 0       | WALL_S  | 0       ,=> '│',
+  WALL_N  | 0       | WALL_S  | WALL_W  ,=> '┤',
+  WALL_N  | WALL_E  | 0       | 0       ,=> '└',
+  WALL_N  | WALL_E  | 0       | WALL_W  ,=> '┴',
+  WALL_N  | WALL_E  | WALL_S  | 0       ,=> '├',
+  WALL_N  | WALL_E  | WALL_S  | WALL_W  ,=> '┼',
+);
+
+sub wall {
+  my ($n, $e, $s, $w) = @_;
+  return $WALL{ ($n ? WALL_N : 0)
+              | ($e ? WALL_E : 0)
+              | ($s ? WALL_S : 0)
+              | ($w ? WALL_W : 0) } || '+';
+}
+
+sub get_at {
+  my ($x, $y) = @_;
+  return undef if $x < 0 or $y < 0;
+  return undef if $x > $max_x or $y > $max_y;
+  return $grid->[$y][$x];
+}
+
+my @output;
+
+for my $y (0 .. $max_y+1) {
+  my $row = q{};
+
+  my $filler;
+
+  for my $x (0 .. $max_x+1) {
+    my $ne = get_at($x    , $y - 1);
+    my $se = get_at($x    , $y    );
+    my $sw = get_at($x - 1, $y    );
+    my $nw = get_at($x - 1, $y - 1);
+
+    my $n = (defined $ne && ! ($ne & LINK_W))
+         || (defined $nw && ! ($nw & LINK_E));
+    my $e = (defined $se && ! ($se & LINK_N))
+         || (defined $ne && ! ($ne & LINK_S));
+    my $s = (defined $se && ! ($se & LINK_W))
+         || (defined $sw && ! ($sw & LINK_E));
+    my $w = (defined $sw && ! ($sw & LINK_N))
+         || (defined $nw && ! ($nw & LINK_S));
+
+    if ($opt->debug) {
+      printf "(%u, %u) -> NE:%2s SE:%2s SW:%2s NW:%2s -> (%s %s %s %s) -> %s\n",
+        $x, $y,
+        (map {; $_ // '--'  } ($ne, $se, $sw, $nw)),
+        (map {; $_ ? 1 : 0 } ($n,  $e,  $s,  $w)),
+        wall($n, $e, $s, $w);
+    }
+
+    $row .= wall($n, $e, $s, $w);
+
+    if ($x > $max_x) {
+      # The rightmost wall is just the right joiner.
+      $filler .=  wall($s, 0, $s, 0);
+    } else {
+      # Every wall but the last gets post-wall spacing.
+      $row .= ($e ? wall(0,1,0,1) : ' ') x $opt->width;
+      $filler .=  wall($s, 0, $s, 0);
+      $filler .= ' ' x $opt->width;
+    }
+  }
+
+  push @output, $row;
+  if ($y <= $max_y) {
+    push @output, ($filler) x $opt->height;
+  }
+}
+
+say for @output;
