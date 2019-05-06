@@ -17,17 +17,23 @@ binmode *STDOUT, ':encoding(UTF-8)';
 #  1   A maze file, in the first and stupidest form, is a sequence of lines.
 # 8•2  Every line is a sequence of numbers.
 #  4   Every number is a 4-bit number.  *On* sides are linked.
+#
+# Here are some (-w 3 -h 1) depictions of mazes as described by the numbers
+# shown in their cells:
+#
+# ┌───┬───┬───┐ ╶───────┬───┐
+# │ 0 │ 0 │ 0 │  10  12 │ 0 │
+# ├───┼───┼───┤ ┌───┐   ├───┤
+# │ 0 │ 0 │ 0 │ │ 0 │ 5 │ 0 │
+# ├───┼───┼───┤ ├───┤   └───┤
+# │ 0 │ 0 │ 0 │ │ 0 │ 3  12 │
+# └───┴───┴───┘ └───┴───╴   ╵
 
 use constant {
-  LINK_N => 1,
-  LINK_E => 2,
-  LINK_S => 4,
-  LINK_W => 8,
-
-  WALL_N => 1,
-  WALL_E => 2,
-  WALL_S => 4,
-  WALL_W => 8,
+  NORTH => 1,
+  EAST  => 2,
+  SOUTH => 4,
+  WEST  => 8,
 };
 
 my @lines = <>;
@@ -35,10 +41,12 @@ chomp @lines;
 
 my $grid = [ map {; [ split /\s+/, $_ ] } @lines ];
 
+die "bogus input\n" if grep {; grep {; /[^0-9]/ } @$_ } @$grid;
+
 my $max_x = $grid->[0]->$#*;
 my $max_y = $grid->$#*;
 
-die "not all rows of uniform length" if grep {; $#$_ != $max_x } @$grid;
+die "not all rows of uniform length\n" if grep {; $#$_ != $max_x } @$grid;
 
 for my $y (0 .. $max_y) {
   for my $x (0 .. $max_x) {
@@ -47,48 +55,38 @@ for my $y (0 .. $max_y) {
     my $east  = $x < $max_x ? $grid->[$y][$x+1] : undef;
 
     die "inconsistent vertical linkage at ($x, $y) ($cell v $south)"
-      if $south && ($cell & LINK_S  xor  $south & LINK_N);
+      if $south && ($cell & SOUTH  xor  $south & NORTH);
 
     die "inconsistent horizontal linkage at ($x, $y) ($cell v $east)"
-      if $east  && ($cell & LINK_E  xor  $east  & LINK_W);
+      if $east  && ($cell & EAST   xor  $east  & WEST );
   }
 }
 
-# ┌───┬───┬───┐ ╶───────┬───┐
-# │ 0 │ 0 │ 0 │  10  12 │ 0 │
-# ├───┼───┼───┤ ┌───┐   ├───┤
-# │ 0 │ 0 │ 0 │ │ 0 │ 5 │ 0 │
-# ├───┼───┼───┤ ├───┤   └───┤
-# │ 0 │ 0 │ 0 │ │ 0 │ 3  12 │
-# └───┴───┴───┘ └───┴───╴   ╵
-# Every cell takes two vertical rows, plus one more row at the bottom.
-# Every cell takes four columns, plus one final column at the right.
-
 my %WALL = (
-  0       | 0       | 0       | 0       ,=> ' ',
-  0       | 0       | 0       | WALL_W  ,=> '╴',
-  0       | 0       | WALL_S  | 0       ,=> '╷',
-  0       | 0       | WALL_S  | WALL_W  ,=> '┐',
-  0       | WALL_E  | 0       | 0       ,=> '╶',
-  0       | WALL_E  | 0       | WALL_W  ,=> '─',
-  0       | WALL_E  | WALL_S  | 0       ,=> '┌',
-  0       | WALL_E  | WALL_S  | WALL_W  ,=> '┬',
-  WALL_N  | 0       | 0       | 0       ,=> '╵',
-  WALL_N  | 0       | 0       | WALL_W  ,=> '┘',
-  WALL_N  | 0       | WALL_S  | 0       ,=> '│',
-  WALL_N  | 0       | WALL_S  | WALL_W  ,=> '┤',
-  WALL_N  | WALL_E  | 0       | 0       ,=> '└',
-  WALL_N  | WALL_E  | 0       | WALL_W  ,=> '┴',
-  WALL_N  | WALL_E  | WALL_S  | 0       ,=> '├',
-  WALL_N  | WALL_E  | WALL_S  | WALL_W  ,=> '┼',
+  0     | 0     | 0     | 0     ,=> ' ',
+  0     | 0     | 0     | WEST  ,=> '╴',
+  0     | 0     | SOUTH | 0     ,=> '╷',
+  0     | 0     | SOUTH | WEST  ,=> '┐',
+  0     | EAST  | 0     | 0     ,=> '╶',
+  0     | EAST  | 0     | WEST  ,=> '─',
+  0     | EAST  | SOUTH | 0     ,=> '┌',
+  0     | EAST  | SOUTH | WEST  ,=> '┬',
+  NORTH | 0     | 0     | 0     ,=> '╵',
+  NORTH | 0     | 0     | WEST  ,=> '┘',
+  NORTH | 0     | SOUTH | 0     ,=> '│',
+  NORTH | 0     | SOUTH | WEST  ,=> '┤',
+  NORTH | EAST  | 0     | 0     ,=> '└',
+  NORTH | EAST  | 0     | WEST  ,=> '┴',
+  NORTH | EAST  | SOUTH | 0     ,=> '├',
+  NORTH | EAST  | SOUTH | WEST  ,=> '┼',
 );
 
 sub wall {
   my ($n, $e, $s, $w) = @_;
-  return $WALL{ ($n ? WALL_N : 0)
-              | ($e ? WALL_E : 0)
-              | ($s ? WALL_S : 0)
-              | ($w ? WALL_W : 0) } || '+';
+  return $WALL{ ($n ? NORTH : 0)
+              | ($e ? EAST : 0)
+              | ($s ? SOUTH : 0)
+              | ($w ? WEST : 0) } || '+';
 }
 
 sub get_at {
@@ -111,14 +109,14 @@ for my $y (0 .. $max_y+1) {
     my $sw = get_at($x - 1, $y    );
     my $nw = get_at($x - 1, $y - 1);
 
-    my $n = (defined $ne && ! ($ne & LINK_W))
-         || (defined $nw && ! ($nw & LINK_E));
-    my $e = (defined $se && ! ($se & LINK_N))
-         || (defined $ne && ! ($ne & LINK_S));
-    my $s = (defined $se && ! ($se & LINK_W))
-         || (defined $sw && ! ($sw & LINK_E));
-    my $w = (defined $sw && ! ($sw & LINK_N))
-         || (defined $nw && ! ($nw & LINK_S));
+    my $n = (defined $ne && ! ($ne & WEST ))
+         || (defined $nw && ! ($nw & EAST ));
+    my $e = (defined $se && ! ($se & NORTH))
+         || (defined $ne && ! ($ne & SOUTH));
+    my $s = (defined $se && ! ($se & WEST ))
+         || (defined $sw && ! ($sw & EAST ));
+    my $w = (defined $sw && ! ($sw & NORTH))
+         || (defined $nw && ! ($nw & SOUTH));
 
     if ($opt->debug) {
       printf "(%u, %u) -> NE:%2s SE:%2s SW:%2s NW:%2s -> (%s %s %s %s) -> %s\n",
