@@ -84,6 +84,34 @@ class Maze {
     })
   }
 
+  applySidewinder () {
+    let run   = [];
+    let east  = Dir.EAST;
+    let north = Dir.NORTH;
+
+    this.eachCell( (x,y) => {
+      run.push({ x: x, y: y });
+
+      // If possible, half the time drill east.
+      if (
+        this.isValidXY(x + east.dx, y + east.dy)
+        &&
+        (y == 0 || Math.random() > 0.5)
+      ) {
+        this.link(x, y, east);
+        return;
+      }
+
+      if (y != 0) {
+        // Otherwise, of the current run, pick one, drill north, and end the
+        // run.
+        const cell = pickOne(run);
+        this.link(cell.x, cell.y, north);
+        run = [];
+      }
+    });
+  }
+
   addExits(n) {
     let edges = this.edgeCells();
 
@@ -111,7 +139,8 @@ class Maze {
 
 let maze = new Maze(8, 8);
 
-maze.applyBT();
+// maze.applyBT();
+maze.applySidewinder();
 maze.addExits(2);
 
 console.log( maze.asString() );
