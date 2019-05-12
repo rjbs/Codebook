@@ -53,8 +53,8 @@ class Maze {
   }
 
   eachCell (fn) {
-    for (const x of upTo(maze.height)) {
-      for (const y of upTo(maze.width)) {
+    for (const y of upTo(maze.height)) {
+      for (const x of upTo(maze.width)) {
         fn(x,y);
       }
     }
