@@ -87,28 +87,30 @@ class Maze {
   applySidewinder () {
     let run   = [];
     let east  = Dir.EAST;
-    let north = Dir.NORTH;
+    let south = Dir.SOUTH;
 
     this.eachCell( (x,y) => {
-      run.push({ x: x, y: y });
+      if (y != this.maxY) run.push({ x: x, y: y });
 
       // If possible, half the time drill east.
       if (
         this.isValidXY(x + east.dx, y + east.dy)
         &&
-        (y == 0 || Math.random() > 0.5)
+        (y == this.maxY || Math.random() > 0.5)
       ) {
         this.link(x, y, east);
         return;
       }
 
-      if (y != 0) {
+      if (run.length) {
         // Otherwise, of the current run, pick one, drill north, and end the
         // run.
         const cell = pickOne(run);
-        this.link(cell.x, cell.y, north);
+        this.link(cell.x, cell.y, south);
         run = [];
+        return;
       }
+
     });
   }
 
