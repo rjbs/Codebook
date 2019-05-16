@@ -1,5 +1,7 @@
 #!/usr/local/bin/node
 
+const DEBUG = 0;
+
 function upTo(n) {
   return Array(n).fill().keys()
 }
@@ -15,6 +17,26 @@ const Dir = {
   WEST : { value: 8, rvalue: 2, dx: -1, dy:  0 },
 };
 
+const wallCharacter = {};
+wallCharacter[  0 | 0 | 0 | 0 ] = ' ';
+wallCharacter[  0 | 0 | 0 | 8 ] = '╴';
+wallCharacter[  0 | 0 | 4 | 0 ] = '╷';
+wallCharacter[  0 | 0 | 4 | 8 ] = '┐';
+wallCharacter[  0 | 2 | 0 | 0 ] = '╶';
+wallCharacter[  0 | 2 | 0 | 8 ] = '─';
+wallCharacter[  0 | 2 | 4 | 0 ] = '┌';
+wallCharacter[  0 | 2 | 4 | 8 ] = '┬';
+wallCharacter[  1 | 0 | 0 | 0 ] = '╵';
+wallCharacter[  1 | 0 | 0 | 8 ] = '┘';
+wallCharacter[  1 | 0 | 4 | 0 ] = '│';
+wallCharacter[  1 | 0 | 4 | 8 ] = '┤';
+wallCharacter[  1 | 2 | 0 | 0 ] = '└';
+wallCharacter[  1 | 2 | 0 | 8 ] = '┴';
+wallCharacter[  1 | 2 | 4 | 0 ] = '├';
+wallCharacter[  1 | 2 | 4 | 8 ] = '┼';
+
+console.log(wallCharacter);
+
 class Maze {
   constructor(width, height) {
     this.width  = width;
@@ -25,8 +47,78 @@ class Maze {
     this.grid = Array.from( Array(height), x => Array(width).fill(0))
   }
 
-  asString () {
+  asNumberGrid () {
     return this.grid.map(row => row.join(" ")).join("\n");
+  }
+
+  cellAt (x, y) {
+    if (x < 0 || y < 0) return null;
+    if (x > this.maxX || y > this.maxY) return null;
+
+    return this.grid[y][x];
+  }
+
+  wall (n, e, s, w) {
+    return wallCharacter[ (n ? 1 : 0)
+                        | (e ? 2 : 0)
+                        | (s ? 4 : 0)
+                        | (w ? 8 : 0) ];
+  }
+
+  asString () {
+    let output = "";
+
+    for (const y of upTo(this.height + 1)) {
+      let row = "";
+      let filler = "";
+
+      for (const x of upTo(this.width + 1)) {
+        const ne = this.cellAt(x    , y - 1);
+        const se = this.cellAt(x    , y    );
+        const sw = this.cellAt(x - 1, y    );
+        const nw = this.cellAt(x - 1, y - 1);
+
+        const n = (ne !== null && ! (ne & Dir.WEST.value ))
+               || (nw !== null && ! (nw & Dir.EAST.value));
+        const e = (se !== null && ! (se & Dir.NORTH.value))
+               || (ne !== null && ! (ne & Dir.SOUTH.value));
+        const s = (se !== null && ! (se & Dir.WEST.value ))
+               || (sw !== null && ! (sw & Dir.EAST.value ));
+        const w = (sw !== null && ! (sw & Dir.NORTH.value))
+               || (nw !== null && ! (nw & Dir.SOUTH.value));
+
+        if (DEBUG) {
+          const b = b => b ? 1 : 0;
+          console.log(
+            "(%d, %d) -> NE:%s SE:%s SW:%s NW:%s -> (n:%s e:%s s:%s w:%s) -> %s",
+            x, y,
+            ne, se, sw, nw,
+            b(n), b(e), b(s), b(w),
+            this.wall(n, e, s, w)
+          );
+        }
+
+        row += this.wall(n, e, s, w);
+
+        if (x > this.maxX) {
+          // The rightmost wall is just the right joiner.
+          filler +=  this.wall(s, 0, s, 0);
+        } else {
+          // Every wall but the last gets post-wall spacing.
+          row += (e ? this.wall(0,1,0,1) : ' ').repeat(3);
+          filler +=  this.wall(s, 0, s, 0);
+          filler += ' '.repeat(3);
+        }
+      }
+
+      output += row + "\n";
+
+      if (y <= this.maxY) {
+        output += filler.repeat(1) + "\n";
+      }
+    }
+
+    return output;
   }
 
   isValidXY(x, y) {
@@ -123,6 +215,8 @@ class Maze {
       throw "too many exits requested";
     }
 
+    var exitCells = [];
+
     for (const i of upTo(n)) {
       const cell = pickOne(edges);
 
@@ -135,7 +229,11 @@ class Maze {
 
       let dir = pickOne(options);
       this.link(cell.x, cell.y, dir);
+
+      exitCells.push({ x: cell.x, y: cell.y });
     }
+
+    return exitCells;
   }
 }
 
