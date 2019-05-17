@@ -11,11 +11,16 @@ function pickOne(arr) {
 }
 
 const Dir = {
-  NORTH: { value: 1, rvalue: 4, dx:  0, dy: -1 },
-  EAST : { value: 2, rvalue: 8, dx:  1, dy:  0 },
-  SOUTH: { value: 4, rvalue: 1, dx:  0, dy:  1 },
-  WEST : { value: 8, rvalue: 2, dx: -1, dy:  0 },
+  NORTH: { value: 1, dx:  0, dy: -1, name: 'north' },
+  EAST : { value: 2, dx:  1, dy:  0, name: 'east'  },
+  SOUTH: { value: 4, dx:  0, dy:  1, name: 'south' },
+  WEST : { value: 8, dx: -1, dy:  0, name: 'west'  },
 };
+
+Dir.NORTH.opposite = Dir.SOUTH;
+Dir.EAST.opposite  = Dir.WEST;
+Dir.SOUTH.opposite = Dir.NORTH;
+Dir.WEST.opposite  = Dir.WEST;
 
 const wallCharacter = {};
 wallCharacter[  0 | 0 | 0 | 0 ] = ' ';
@@ -35,7 +40,25 @@ wallCharacter[  1 | 2 | 0 | 8 ] = '┴';
 wallCharacter[  1 | 2 | 4 | 0 ] = '├';
 wallCharacter[  1 | 2 | 4 | 8 ] = '┼';
 
-console.log(wallCharacter);
+class Cell {
+  constructor (maze) {
+    this.maze  = maze;
+    this.mark  = null;
+    this.links = { north: false, east: false, south: false, west: false };
+  }
+
+  linksNorth () { return this.links.north }
+  linksEast  () { return this.links.east  }
+  linksSouth () { return this.links.south }
+  linksWest  () { return this.links.west  }
+
+  numericValue () {
+    return( (this.links.north ? 1 : 0)
+          | (this.links.east  ? 2 : 0)
+          | (this.links.south ? 4 : 0)
+          | (this.links.west  ? 8 : 0) );
+  }
+};
 
 class Maze {
   constructor(width, height) {
@@ -44,11 +67,16 @@ class Maze {
     this.maxX   = width  - 1;
     this.maxY   = height - 1;
 
-    this.grid = Array.from( Array(height), x => Array(width).fill(0))
+    this.grid = Array.from(
+      Array(height),
+      y => Array.from(Array(width), x => new Cell(this))
+    )
   }
 
   asNumberGrid () {
-    return this.grid.map(row => row.join(" ")).join("\n");
+    return this.grid
+               .map(row => row.map(cell => cell.numericValue()).join(" "))
+               .join("\n");
   }
 
   cellAt (x, y) {
@@ -78,14 +106,14 @@ class Maze {
         const sw = this.cellAt(x - 1, y    );
         const nw = this.cellAt(x - 1, y - 1);
 
-        const n = (ne !== null && ! (ne & Dir.WEST.value ))
-               || (nw !== null && ! (nw & Dir.EAST.value));
-        const e = (se !== null && ! (se & Dir.NORTH.value))
-               || (ne !== null && ! (ne & Dir.SOUTH.value));
-        const s = (se !== null && ! (se & Dir.WEST.value ))
-               || (sw !== null && ! (sw & Dir.EAST.value ));
-        const w = (sw !== null && ! (sw & Dir.NORTH.value))
-               || (nw !== null && ! (nw & Dir.SOUTH.value));
+        const n = (ne !== null && ! (ne.linksWest()  ))
+               || (nw !== null && ! (nw.linksEast()  ));
+        const e = (se !== null && ! (se.linksNorth() ))
+               || (ne !== null && ! (ne.linksSouth() ));
+        const s = (se !== null && ! (se.linksWest()  ))
+               || (sw !== null && ! (sw.linksEast()  ));
+        const w = (sw !== null && ! (sw.linksNorth() ))
+               || (nw !== null && ! (nw.linksSouth() ));
 
         if (DEBUG) {
           const b = b => b ? 1 : 0;
@@ -107,7 +135,7 @@ class Maze {
           // Every wall but the last gets post-wall spacing.
           row += (e ? this.wall(0,1,0,1) : ' ').repeat(3);
           filler +=  this.wall(s, 0, s, 0);
-          filler += ' '.repeat(3);
+          filler += ' ' + (se && se.mark !== null ? se.mark : ' ') + ' ';
         }
       }
 
@@ -133,14 +161,13 @@ class Maze {
   }
 
   link (x, y, direction) {
-    // console.log(`linking ${x},${y} in ${direction.value}`);
-    this.grid[y][x] |= direction.value;
+    this.grid[y][x].links[ direction.name ] = true;
 
     let tx = x + direction.dx;
     let ty = y + direction.dy;
 
     if (this.isValidXY(tx, ty)) {
-      this.grid[ty][tx] |= direction.rvalue;
+      this.grid[ty][tx].links[ direction.opposite.name ] = true;
     }
   }
 
@@ -237,10 +264,12 @@ class Maze {
   }
 }
 
-let maze = new Maze(8, 8);
+let maze = new Maze(6, 6);
 
 // maze.applyBT();
 maze.applySidewinder();
 maze.addExits(2);
+
+maze.cellAt(2,2).mark = '!';
 
 console.log( maze.asString() );
