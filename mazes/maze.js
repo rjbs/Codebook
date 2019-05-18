@@ -196,14 +196,14 @@ class Maze {
     );
   }
 
-  link (x, y, direction) {
-    this.grid[y][x].links[ direction.name ] = true;
+  link (from, direction) {
+    this.grid[from.y][from.x].links[ direction.name ] = true;
 
-    let tx = x + direction.dx;
-    let ty = y + direction.dy;
+    let tx = from.x + direction.dx;
+    let ty = from.y + direction.dy;
 
     if (this.isValidXY(tx, ty)) {
-      this.grid[ty][tx].links[ direction.opposite.name ] = true;
+      this.cellAt(tx,ty).links[ direction.opposite.name ] = true;
     }
   }
 
@@ -234,7 +234,7 @@ class Maze {
       );
 
       if (options.length > 0) {
-        this.link(cell.x, cell.y, pickOne(options))
+        this.link(cell, pickOne(options))
       }
     })
   }
@@ -253,7 +253,7 @@ class Maze {
         &&
         (cell.y == this.maxY || Math.random() > 0.5)
       ) {
-        this.link(cell.x, cell.y, east);
+        this.link(cell, east);
         return;
       }
 
@@ -261,7 +261,7 @@ class Maze {
         // Otherwise, of the current run, pick one, drill north, and end the
         // run.
         const cell = pickOne(run);
-        this.link(cell.x, cell.y, south);
+        this.link(cell, south);
         run = [];
         return;
       }
@@ -291,7 +291,7 @@ class Maze {
       if (cell.x == this.maxX)  options.push( Dir.east  )
 
       let dir = pickOne(options);
-      this.link(cell.x, cell.y, dir);
+      this.link(cell, dir);
 
       exitCells.push( this.cellAt(cell.x, cell.y) );
     }
