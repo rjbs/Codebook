@@ -20,7 +20,7 @@ const Dir = {
 Dir.north.opposite = Dir.south;
 Dir.east.opposite  = Dir.west;
 Dir.south.opposite = Dir.north;
-Dir.west.opposite  = Dir.west;
+Dir.west.opposite  = Dir.east;
 
 const wallCharacter = {};
 wallCharacter[  0 | 0 | 0 | 0 ] = ' ';
