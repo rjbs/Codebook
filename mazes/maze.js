@@ -298,6 +298,19 @@ class Maze {
 
     return exitCells;
   }
+
+  markPath (start, end) {
+    let d = new Distance(maze, end);
+    let next = start;
+
+    while (next) {
+      const n = d.distanceTo(next);
+      next.setMark(n);
+
+      next = Object.values(next.linkedCells())
+                   .filter(c => d.distanceTo(c) < n)[0]
+    }
+  }
 }
 
 class Distance {
@@ -332,18 +345,6 @@ let maze = new Maze(8, 8);
 maze.applySidewinder();
 
 let [ start, end ] = maze.addExits(2);
-
-let d = new Distance(maze, end);
-
-let next = start;
-while (next !== end) {
-  const dist = d.distanceTo(next);
-  next.setMark(dist);
-
-  next = Object.values(next.linkedCells())
-               .filter(c => d.distanceTo(c) < dist)[0]
-
-  next.setMark(dist);
-}
+maze.markPath(start, end);
 
 console.log( maze.asString() );
