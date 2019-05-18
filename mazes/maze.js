@@ -269,6 +269,29 @@ class Maze {
     });
   }
 
+  applyAB () {
+    let visited = new Map();
+
+    const root = this.randomCell();
+    let cell = root;
+
+    while (visited.size < this.height * this.width) {
+      visited.set(cell, true);
+
+      const paths  = cell.neighbors();
+      const dir    = pickOne( Object.keys( paths ) );
+      const target = paths[dir];
+
+      if (! visited.has(target)) {
+        maze.link(cell, Dir[dir]);
+
+        let mark = Dir[dir].opposite.name.substr(0,1);
+      }
+
+      cell = paths[dir];
+    }
+  }
+
   addExits(n) {
     let edges = this.edgeCells();
 
