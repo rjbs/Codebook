@@ -300,21 +300,50 @@ class Maze {
   }
 }
 
+class Distance {
+  constructor (maze, root) {
+    this.maze = maze;
+    this.root = root;
+
+    this.distances = new Map();
+
+    let queue = [ root ];
+    let distance = 0;
+    while (queue.length) {
+      queue.forEach(c => this.distances.set(c, distance));
+      queue = queue
+        .flatMap(c => Object.values(c.linkedCells())
+                            .filter(n => ! this.distances.has(n)));
+
+      distance += 1;
+    }
+  }
+
+  distanceTo (cell) {
+    return this.distances.get(cell);
+  }
+}
+
+//----------------------------------
+
 let maze = new Maze(8, 8);
 
 // maze.applyBT();
 maze.applySidewinder();
 
-let exits = maze.addExits(2);
+let [ start, end ] = maze.addExits(2);
 
-let queue = [ exits[0] ];
-let distance = 0;
-while (queue.length) {
-  queue.map(c => c.setMark(distance));
-  queue = queue
-    .flatMap(c => Object.values(c.linkedCells()).filter(n => n.mark === null));
+let d = new Distance(maze, end);
 
-  distance += 1;
+let next = start;
+while (next !== end) {
+  const dist = d.distanceTo(next);
+  next.setMark(dist);
+
+  next = Object.values(next.linkedCells())
+               .filter(c => d.distanceTo(c) < dist)[0]
+
+  next.setMark(dist);
 }
 
 console.log( maze.asString() );
