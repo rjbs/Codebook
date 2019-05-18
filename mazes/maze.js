@@ -3,7 +3,7 @@
 const DEBUG = 0;
 
 function upTo(n) {
-  return Array(n).fill().keys()
+  return Array(n).keys()
 }
 
 function pickOne(arr) {
@@ -11,16 +11,16 @@ function pickOne(arr) {
 }
 
 const Dir = {
-  NORTH: { value: 1, dx:  0, dy: -1, name: 'north' },
-  EAST : { value: 2, dx:  1, dy:  0, name: 'east'  },
-  SOUTH: { value: 4, dx:  0, dy:  1, name: 'south' },
-  WEST : { value: 8, dx: -1, dy:  0, name: 'west'  },
+  north: { value: 1, dx:  0, dy: -1, name: 'north' },
+  east : { value: 2, dx:  1, dy:  0, name: 'east'  },
+  south: { value: 4, dx:  0, dy:  1, name: 'south' },
+  west : { value: 8, dx: -1, dy:  0, name: 'west'  },
 };
 
-Dir.NORTH.opposite = Dir.SOUTH;
-Dir.EAST.opposite  = Dir.WEST;
-Dir.SOUTH.opposite = Dir.NORTH;
-Dir.WEST.opposite  = Dir.WEST;
+Dir.north.opposite = Dir.south;
+Dir.east.opposite  = Dir.west;
+Dir.south.opposite = Dir.north;
+Dir.west.opposite  = Dir.west;
 
 const wallCharacter = {};
 wallCharacter[  0 | 0 | 0 | 0 ] = ' ';
@@ -41,10 +41,22 @@ wallCharacter[  1 | 2 | 4 | 0 ] = '├';
 wallCharacter[  1 | 2 | 4 | 8 ] = '┼';
 
 class Cell {
-  constructor (maze) {
+  constructor (x, y, maze) {
+    this.x     = x;
+    this.y     = y;
     this.maze  = maze;
     this.mark  = null;
     this.links = { north: false, east: false, south: false, west: false };
+  }
+
+  setMark (str) {
+    str = String(str);
+
+    this.mark = str.length < 2 ? (" " + str) : str;
+  }
+
+  clearMark () {
+    this.mark = null;
   }
 
   linksNorth () { return this.links.north }
@@ -58,6 +70,29 @@ class Cell {
           | (this.links.south ? 4 : 0)
           | (this.links.west  ? 8 : 0) );
   }
+
+  neighbors () {
+    let neighbor = {};
+
+    for (const dirName of Object.keys(Dir)) {
+      const cell = this.maze.cellAt(
+        this.x + Dir[dirName].dx,
+        this.y + Dir[dirName].dy,
+      );
+
+      if (cell) neighbor[dirName] = cell;
+    }
+
+    return neighbor;
+  }
+
+  linkedCells () {
+    const neighbors = this.neighbors();
+    return Object.keys(neighbors)
+                 .filter(d => this.links[d])
+                 // I'm not thrilled by this syntax. -- rjbs
+                 .reduce((acc, d) => (acc[d] = neighbors[d], acc), {});
+  }
 };
 
 class Maze {
@@ -68,8 +103,8 @@ class Maze {
     this.maxY   = height - 1;
 
     this.grid = Array.from(
-      Array(height),
-      y => Array.from(Array(width), x => new Cell(this))
+      upTo(height),
+      y => Array.from( upTo(width), x => new Cell(x, y, this))
     )
   }
 
@@ -135,7 +170,8 @@ class Maze {
           // Every wall but the last gets post-wall spacing.
           row += (e ? this.wall(0,1,0,1) : ' ').repeat(3);
           filler +=  this.wall(s, 0, s, 0);
-          filler += ' ' + (se && se.mark !== null ? se.mark : ' ') + ' ';
+
+          filler += (se && se.mark !== null ? se.mark : '  ') + ' ';
         }
       }
 
@@ -153,11 +189,11 @@ class Maze {
     return(x >= 0 && x < this.width && y >= 0 && y < this.height);
   }
 
-  randomPoint () {
-    return {
-      x: Math.floor( Math.random() * this.width ),
-      y: Math.floor( Math.random() * this.height ),
-    };
+  randomCell () {
+    return this.cellAt(
+      Math.floor( Math.random() * this.width ),
+      Math.floor( Math.random() * this.height ),
+    );
   }
 
   link (x, y, direction) {
@@ -174,7 +210,7 @@ class Maze {
   eachCell (fn) {
     for (const y of upTo(maze.height)) {
       for (const x of upTo(maze.width)) {
-        fn(x,y);
+        fn(this.cellAt(x,y));
       }
     }
   }
@@ -183,41 +219,41 @@ class Maze {
     const xs = Array.from(upTo(this.maxX));
     const ys = Array.from(upTo(this.maxY));
 
-    let cells = xs.map(x => { return { x: x, y: 0         }; }).concat(
-                xs.map(x => { return { x: x, y: this.maxY }; })).concat(
-                ys.map(y => { return { x: 0, y: y         }; })).concat(
-                ys.map(y => { return { x: this.maxX, y: y }; }));
+    let cells = xs.map(x => this.cellAt(x, 0         )).concat(
+                xs.map(x => this.cellAt(x, this.maxY))).concat(
+                ys.map(y => this.cellAt(0, y        ))).concat(
+                ys.map(y => this.cellAt(this.maxX, y)));
 
     return cells;
   }
 
   applyBT () {
-    this.eachCell( (x, y) => {
-      let options = [ Dir.SOUTH, Dir.EAST ].filter(
-        dir => this.isValidXY(x + dir.dx, y + dir.dy)
+    this.eachCell(cell => {
+      let options = [ Dir.south, Dir.east ].filter(
+        dir => this.isValidXY(cell.x + dir.dx, cell.y + dir.dy)
       );
 
       if (options.length > 0) {
-        this.link(x, y, pickOne(options))
+        this.link(cell.x, cell.y, pickOne(options))
       }
     })
   }
 
   applySidewinder () {
     let run   = [];
-    let east  = Dir.EAST;
-    let south = Dir.SOUTH;
+    let east  = Dir.east;
+    let south = Dir.south;
 
-    this.eachCell( (x,y) => {
-      if (y != this.maxY) run.push({ x: x, y: y });
+    this.eachCell(cell => {
+      if (cell.y != this.maxY) run.push(cell);
 
       // If possible, half the time drill east.
       if (
-        this.isValidXY(x + east.dx, y + east.dy)
+        this.isValidXY(cell.x + east.dx, cell.y + east.dy)
         &&
-        (y == this.maxY || Math.random() > 0.5)
+        (cell.y == this.maxY || Math.random() > 0.5)
       ) {
-        this.link(x, y, east);
+        this.link(cell.x, cell.y, east);
         return;
       }
 
@@ -249,27 +285,36 @@ class Maze {
 
       let options = [];
 
-      if (cell.y == 0)          options.push( Dir.NORTH )
-      if (cell.y == this.maxY)  options.push( Dir.SOUTH )
-      if (cell.x == 0)          options.push( Dir.WEST  )
-      if (cell.x == this.maxX)  options.push( Dir.EAST  )
+      if (cell.y == 0)          options.push( Dir.north )
+      if (cell.y == this.maxY)  options.push( Dir.south )
+      if (cell.x == 0)          options.push( Dir.west  )
+      if (cell.x == this.maxX)  options.push( Dir.east  )
 
       let dir = pickOne(options);
       this.link(cell.x, cell.y, dir);
 
-      exitCells.push({ x: cell.x, y: cell.y });
+      exitCells.push( this.cellAt(cell.x, cell.y) );
     }
 
     return exitCells;
   }
 }
 
-let maze = new Maze(6, 6);
+let maze = new Maze(8, 8);
 
 // maze.applyBT();
 maze.applySidewinder();
-maze.addExits(2);
 
-maze.cellAt(2,2).mark = '!';
+let exits = maze.addExits(2);
+
+let queue = [ exits[0] ];
+let distance = 0;
+while (queue.length) {
+  queue.map(c => c.setMark(distance));
+  queue = queue
+    .flatMap(c => Object.values(c.linkedCells()).filter(n => n.mark === null));
+
+  distance += 1;
+}
 
 console.log( maze.asString() );
