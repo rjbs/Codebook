@@ -231,7 +231,7 @@ class Maze {
     return cells;
   }
 
-  applyBT () {
+  apply_bt () {
     this.eachCell(cell => {
       let options = [ Dir.south, Dir.east ].filter(
         dir => this.isValidXY(cell.x + dir.dx, cell.y + dir.dy)
@@ -243,7 +243,7 @@ class Maze {
     })
   }
 
-  applySidewinder () {
+  apply_sidewinder () {
     let run   = [];
     let east  = Dir.east;
     let south = Dir.south;
@@ -273,7 +273,7 @@ class Maze {
     });
   }
 
-  applyAB () {
+  apply_ab () {
     let visited = new Map();
 
     const root = this.randomCell();
@@ -366,10 +366,16 @@ class Distance {
 
 //----------------------------------
 
-let maze = new Maze(8, 8);
+let algo = process.argv[2] || 'ab';
 
-// maze.applyBT();
-maze.applySidewinder();
+let maze = new Maze(15, 15);
+
+if (maze["apply_" + algo]) {
+  maze["apply_" + algo]();
+} else {
+  console.error(`do not know how to use ${algo} algorithm`);
+  process.exit(1);
+}
 
 let [ start, end ] = maze.addExits(2);
 maze.markPath(start, end);
