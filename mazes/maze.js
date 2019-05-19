@@ -296,6 +296,44 @@ class Maze {
     }
   }
 
+  apply_wilson () {
+    let unvisited = new Map();
+
+    for (const c of this.allCells()) {
+      unvisited.set(c, true);
+    }
+
+    unvisited.delete( this.randomCell() );
+
+    while (unvisited.size > 0) {
+      const path = new Map();
+
+      // pick a random unvisited cell
+      let curr = pickOne([...unvisited.keys()]);
+
+      while (true) {
+        // pick a neighbor of cell
+        const [ nextDir, nextCell ] = pickOne(Object.entries(curr.neighbors()));
+
+        // if cell is already in path, start over
+        if ([...path.keys()].find(c => c === nextCell)) break;
+
+        path.set(curr, nextDir);
+        curr = nextCell;
+
+        // if cell is visited, commit path and start over
+        if (! unvisited.has(nextCell)) {
+          for (const [ from, dir ] of path.entries()) {
+            this.link(from, Dir[dir]);
+            unvisited.delete(from);
+          }
+
+          break;
+        }
+      }
+    }
+  }
+
   addExits(n) {
     let edges = this.edgeCells();
 
