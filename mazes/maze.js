@@ -207,6 +207,10 @@ class Maze {
     }
   }
 
+  allCells () {
+    return this.grid.flat(1);
+  }
+
   eachCell (fn) {
     for (const y of upTo(maze.height)) {
       for (const x of upTo(maze.width)) {
