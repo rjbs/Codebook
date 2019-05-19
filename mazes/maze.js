@@ -319,7 +319,6 @@ class Maze {
         if ([...path.keys()].find(c => c === nextCell)) break;
 
         path.set(curr, nextDir);
-        curr = nextCell;
 
         // if cell is visited, commit path and start over
         if (! unvisited.has(nextCell)) {
@@ -330,7 +329,49 @@ class Maze {
 
           break;
         }
+
+        // cell was unvisited and not in path; keep walking
+        curr = nextCell;
       }
+    }
+  }
+
+  apply_hk () {
+    let unvisited = new Map();
+
+    for (const c of this.allCells()) {
+      unvisited.set(c, Object.entries(c.neighbors()));
+    }
+
+    // pick a random unvisited cell
+    let curr = pickOne([...unvisited.keys()]);
+    unvisited.delete(curr);
+
+    while (unvisited.size > 0) {
+      // pick a neighbor of cell
+      let options = Object.entries(curr.neighbors())
+                          .filter(([ d, c ]) => unvisited.has(c));
+
+      if (options.length > 0) {
+        const [ nextDir, nextCell ] = pickOne(options);
+
+        this.link(curr, Dir[nextDir]);
+        unvisited.delete(nextCell);
+        curr = nextCell;
+
+        continue;
+      }
+
+      // Find the first unvisited cell C with a visited neighbor N.
+      // Link C to N, then continue walking from C.
+      let [ nextCell, targets ] = [...unvisited.entries()]
+        .map(([c,n]) => [ c, n.filter(([d,t]) => ! unvisited.has(t)) ])
+        .find(([c,n]) => n.length > 0);
+
+      this.link(nextCell, Dir[pickOne(targets)[0]]);
+      unvisited.delete(nextCell);
+
+      curr = nextCell;
     }
   }
 
