@@ -52,7 +52,11 @@ class Cell {
   setMark (str) {
     str = String(str);
 
-    this.mark = str.length < 2 ? (" " + str) : str;
+    this.mark = str.length  > 3 ? "XXX"
+              : str.length == 3 ? str
+              : str.length == 2 ? (" " + str)
+              : str.length == 1 ? (" " + str + " ")
+              :                   "   ";
   }
 
   clearMark () {
@@ -171,7 +175,7 @@ class Maze {
           row += (e ? this.wall(0,1,0,1) : ' ').repeat(3);
           filler +=  this.wall(s, 0, s, 0);
 
-          filler += (se && se.mark !== null ? se.mark : '  ') + ' ';
+          filler += (se && se.mark !== null ? se.mark : '   ');
         }
       }
 
