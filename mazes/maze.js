@@ -90,7 +90,15 @@ class Cell {
     return neighbor;
   }
 
-  linkedCells () {
+  unlinkedNeighbors () {
+    const neighbors = this.neighbors();
+    return Object.keys(neighbors)
+                 .filter(d => ! this.links[d])
+                 // I'm not thrilled by this syntax. -- rjbs
+                 .reduce((acc, d) => (acc[d] = neighbors[d], acc), {});
+  }
+
+  neighborLinks () {
     const neighbors = this.neighbors();
     return Object.keys(neighbors)
                  .filter(d => this.links[d])
@@ -410,14 +418,14 @@ class Maze {
   }
 
   markPath (start, end) {
-    let d = new Distance(maze, end);
+    let d = new Distance(this, end);
     let next = start;
 
     while (next) {
       const n = d.distanceTo(next);
       next.setMark(n);
 
-      next = Object.values(next.linkedCells())
+      next = Object.values(next.neighborLinks())
                    .filter(c => d.distanceTo(c) < n)[0]
     }
   }
@@ -435,7 +443,7 @@ class Distance {
     while (queue.length) {
       queue.forEach(c => this.distances.set(c, distance));
       queue = queue
-        .flatMap(c => Object.values(c.linkedCells())
+        .flatMap(c => Object.values(c.neighborLinks())
                             .filter(n => ! this.distances.has(n)));
 
       distance += 1;
