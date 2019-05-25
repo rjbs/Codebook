@@ -387,6 +387,33 @@ class Maze {
     }
   }
 
+  apply_rback () {
+    let cells = this.allCells();
+
+    let stack = [ pickOne(cells) ];
+
+    let unvisited = new Set(cells);
+
+    while (unvisited.size > 0) {
+      let next = stack[ stack.length - 1 ];
+
+      let options = Object.entries(next.unlinkedNeighbors())
+                          .filter(e => unvisited.has(e[1]));
+
+      if (options.length) {
+        const [ dir, target ] = pickOne(options);
+        this.link(next, Dir[dir]);
+        unvisited.delete(target);
+        stack.push(target);
+
+        continue;
+      }
+
+      stack.pop();
+    }
+
+  }
+
   addExits(n) {
     let edges = this.edgeCells();
 
