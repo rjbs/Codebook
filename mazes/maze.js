@@ -444,6 +444,15 @@ class Maze {
     return exitCells;
   }
 
+  furthestPoints () {
+    const seedCell = maze.randomCell();
+
+    let start = new Distance(this, seedCell).furthestPoint();
+    let end   = new Distance(this, start).furthestPoint();
+
+    return [ start, end ];
+  }
+
   markPath (start, end) {
     let d = new Distance(this, end);
     let next = start;
