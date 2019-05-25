@@ -509,7 +509,9 @@ if (maze["apply_" + algo]) {
   process.exit(1);
 }
 
-let [ start, end ] = maze.addExits(2);
+// let [ start, end ] = maze.addExits(2);
+let [ start, end ] = maze.furthestPoints();
+
 maze.markPath(start, end);
 
 console.log( maze.asString() );
