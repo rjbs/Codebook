@@ -489,13 +489,18 @@ class Distance {
   distanceTo (cell) {
     return this.distances.get(cell);
   }
+
+  furthestPoint () {
+    return [ ... this.distances.entries() ]
+      .sort( (e1, e2) => Math.sign(e2[1] - e1[1]) )[0][0];
+  }
 }
 
 //----------------------------------
 
 let algo = process.argv[2] || 'ab';
 
-let maze = new Maze(15, 15);
+let maze = new Maze(20, 15);
 
 if (maze["apply_" + algo]) {
   maze["apply_" + algo]();
