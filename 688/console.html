@@ -1,0 +1,35 @@
+<html>
+  <div id='main' style='display:flex'>
+    <div id='controls' style='border: thin black solid; margin: 0 1em; width: 10em'>
+      <ol>
+        <li>Zoq</li>
+        <li>Fot</li>
+        <li>Pik</li>
+      </ol>
+    </div>
+
+    <div id='readout' style='border: thin black solid; flex: 1; padding: 1em; min-height: 20em; max-height: 20em; overflow: scroll'>
+      <p>This is the time of your life, dude.</p>
+    </div>
+
+    <div id='status' style='border: thin black solid; margin: 0 1em; padding: 1em; width: 10em'>
+      Everything is okay.
+    </div>
+  </div>
+
+  <script type='text/javascript'>
+    let turn = 1;
+    document.addEventListener("keyup", event => {
+      console.log("keycode: ", event.keyCode);
+      if (event.code  == 'Digit1') {
+        const p = document.createElement("p");
+        const t = document.createTextNode(`${turn++}: You pressed 1.`);
+        p.append(t);
+
+        const r = document.getElementById('readout');
+        r.append(p);
+        r.scrollTop = r.scrollHeight;
+      }
+    });
+  </script>
+</html>
