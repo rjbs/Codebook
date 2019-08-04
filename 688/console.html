@@ -1,11 +1,22 @@
 <html>
   <div id='main' style='display:flex'>
-    <div id='controls' style='border: thin black solid; margin: 0 1em; width: 10em'>
-      <ol>
-        <li>Zoq</li>
-        <li>Fot</li>
-        <li>Pik</li>
-      </ol>
+    <div id='left' style='display: flex; flex-direction: column;'>
+      <div id='controls' style='border: thin black solid; margin: 0 1em 1em; width: 10em;'>
+        <ol>
+          <li>Zoq</li>
+          <li>Fot</li>
+          <li>Pik</li>
+        </ol>
+      </div>
+
+      <div style='flex:1'>
+      </div>
+
+      <div id='results' style='border: thin black solid; margin: 0 1em; width: 10em'>
+        <p style='margin-left:1em'>Zoop</p>
+        <p style='margin-left:1em'>Dingle</p>
+        <p style='margin-left:1em'>Quark</p>
+      </div>
     </div>
 
     <div id='readout' style='border: thin black solid; flex: 1; padding: 1em; min-height: 20em; max-height: 20em; overflow: scroll'>
@@ -19,6 +30,18 @@
 
   <script type='text/javascript'>
     let turn = 1;
+    function drawStatus () {
+      const r = document.getElementById('status');
+
+      const n = document.createElement('div');
+      n.setAttribute('id', 'status');
+      n.setAttribute('style', "border: thin black solid; margin: 0 1em; padding: 1em; width: 10em'");
+
+      n.append(document.createTextNode(`Everything is okay on turn ${turn}.`));
+
+      r.parentNode.replaceChild(n, r);
+    }
+
     document.addEventListener("keyup", event => {
       console.log("keycode: ", event.keyCode);
       if (event.code  == 'Digit1') {
@@ -29,6 +52,8 @@
         const r = document.getElementById('readout');
         r.append(p);
         r.scrollTop = r.scrollHeight;
+
+        drawStatus();
       }
     });
   </script>
