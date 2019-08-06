@@ -5,12 +5,30 @@
   <script>
     var last = { x: 50, y: 50 };
     var dir  = { x: +1, y: +1 };
+
+    var chars = "Setec Astronomy".split('');
+    var order = Array(chars.length).fill(false);
+    var pick  = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ".split('');
+
+    function nextStringState () {
+      if (Math.random() > 0.98)
+        order[ Math.floor( order.length * Math.random() ) ] = true
+
+      return order.map((x, i) => x ? chars[i] : pick[ Math.floor( Math.random() * pick.length ) ])
+                  .join('');
+    }
+
+    console.log(order);
+
     function draw() {
       var canvas = document.getElementById('canvas');
       if (canvas.getContext) {
         var ctx = canvas.getContext('2d');
 
         ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        ctx.font = '48px monospace';
+        ctx.fillText(nextStringState(), 10, 50);
 
         last.x += Math.random() * 4 * dir.x;
         last.y += Math.random() * 4 * dir.y;
