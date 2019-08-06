@@ -6,19 +6,23 @@
     var last = { x: 50, y: 50 };
     var dir  = { x: +1, y: +1 };
 
-    var chars = "Setec Astronomy".split('');
-    var order = Array(chars.length).fill(false);
-    var pick  = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ".split('');
+    var target  = "Setec Astronomy";
+    var chars   = target.split('');
+    var hidden  = new Set( chars.keys() );
+    var pick    = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ".split('');
+
+    const randInt = i => Math.floor( Math.random() * i );
+
+    const getRandom = s => [...s.keys()][ randInt(s.size) ];
 
     function nextStringState () {
-      if (Math.random() > 0.98)
-        order[ Math.floor( order.length * Math.random() ) ] = true
+      if (hidden.size == 0) return target;
 
-      return order.map((x, i) => x ? chars[i] : pick[ Math.floor( Math.random() * pick.length ) ])
+      if (Math.random() > 0.98) hidden.delete( getRandom(hidden) );
+
+      return chars.map((c, i) => hidden.has(i) ? pick[ randInt(pick.length) ] : c)
                   .join('');
     }
-
-    console.log(order);
 
     function draw() {
       var canvas = document.getElementById('canvas');
