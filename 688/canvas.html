@@ -3,7 +3,7 @@
     <canvas style='outline:thin black solid' id='canvas' width=500 height=500 />
   </div>
   <script>
-    var last = { x: 50, y: 50 };
+    var last = { x: 200, y: 50 };
     var dir  = { x: +1, y: +1 };
 
     var target  = "Setec Astronomy";
@@ -13,7 +13,7 @@
 
     const randInt = i => Math.floor( Math.random() * i );
 
-    const getRandom = s => [...s.keys()][ randInt(s.size) ];
+    const getRandom = s => [...s.values()][ randInt(s.size) ];
 
     function nextStringState () {
       if (hidden.size == 0) return target;
@@ -24,15 +24,14 @@
                   .join('');
     }
 
+    var tick = 0;
     function draw() {
+      tick++;
       var canvas = document.getElementById('canvas');
       if (canvas.getContext) {
         var ctx = canvas.getContext('2d');
 
         ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-        ctx.font = '48px monospace';
-        ctx.fillText(nextStringState(), 10, 50);
 
         last.x += Math.random() * 4 * dir.x;
         last.y += Math.random() * 4 * dir.y;
@@ -45,7 +44,25 @@
           dir.y *= -1;
         }
 
-        ctx.strokeRect(last.x, last.x, 50, 50);
+        ctx.strokeStyle = 'purple';
+        ctx.fillStyle = 'purple';
+
+        ctx.fillRect(last.x, last.x, 50, 50);
+
+        ctx.beginPath();
+        ctx.strokeStyle = 'blue';
+        ctx.moveTo(100, 100);
+
+        const tock = tick % 301;
+        const dx   = (tock > 150 ? 300 - tock : tock) - 50;
+        const dy   = dx / 2;
+
+        ctx.bezierCurveTo(200 + dy, 100 - dx, 300 + dy, 100 + dx, 400, 100);
+        ctx.stroke();
+
+        ctx.fillStyle = 'black';
+        ctx.font = '48px monospace';
+        ctx.fillText(nextStringState(), 35, 50);
       }
 
       window.requestAnimationFrame(draw);
