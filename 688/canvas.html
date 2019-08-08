@@ -16,12 +16,18 @@
     const getRandom = s => [...s.values()][ randInt(s.size) ];
 
     function nextStringState () {
-      if (hidden.size == 0) return target;
+      if (hidden.size == 0) return { random: "", found: target };
 
       if (Math.random() > 0.98) hidden.delete( getRandom(hidden) );
 
-      return chars.map((c, i) => hidden.has(i) ? pick[ randInt(pick.length) ] : c)
-                  .join('');
+      let state = {};
+      state.random = chars.map(
+        (c, i) => hidden.has(i) ? pick[ randInt(pick.length) ] : ' ')
+        .join('');
+
+      state.found  = chars.map((c, i) => hidden.has(i) ? ' ' : c).join('');
+
+      return state;
     }
 
     var tick = 0;
@@ -60,9 +66,15 @@
         ctx.bezierCurveTo(200 + dy, 100 - dx, 300 + dy, 100 + dx, 400, 100);
         ctx.stroke();
 
-        ctx.fillStyle = 'black';
+
+        let stringState = nextStringState();
         ctx.font = '48px monospace';
-        ctx.fillText(nextStringState(), 35, 50);
+
+        ctx.fillStyle = 'red';
+        ctx.fillText(stringState.random, 35, 50);
+
+        ctx.fillStyle = 'green';
+        ctx.fillText(stringState.found, 35, 50);
       }
 
       window.requestAnimationFrame(draw);
