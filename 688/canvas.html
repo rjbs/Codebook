@@ -2,7 +2,7 @@
   <div style='display:flex; align-items: center; align-content: center; justify-content: center; width:100%; height: 100%; outline: thick blue solid'>
     <canvas style='outline:thin black solid' id='canvas' width=500 height=500 />
   </div>
-  <script>
+  <script type='text/javascript'>
     var last = { x: 200, y: 50 };
     var dir  = { x: +1, y: +1 };
 
@@ -35,6 +35,8 @@
     var mobs = [];
 
     var tick = 0;
+    var turnsTaken = 0;
+
     function draw() {
       tick++;
       var canvas = document.getElementById('canvas');
@@ -96,25 +98,38 @@
           if (mob.isDead) return;
 
           ctx.strokeStyle = 'orange';
-          ctx.fillStyle   = 'pink';
+          ctx.fillStyle   = mob.type == 'even' ? 'pink' : 'orange';
 
           ctx.beginPath();
           ctx.arc(mob.x, mob.y, 20, 0, 2 * Math.PI);
           ctx.fill();
         });
+
+        // Turn Count
+        ctx.font = '24px monospace';
+        ctx.fillStyle = 'blue';
+        ctx.fillText(`turn ${turnsTaken}`, 375, 490);
       }
 
       window.requestAnimationFrame(draw);
     }
     window.requestAnimationFrame(draw);
 
-    mobs.push({ x: 25, y: 100 });
+    mobs.push({ x: 25, y: 100, type: 'even' });
 
     function takeTurn() {
       console.log("turn taken");
 
       mobs.forEach(mob => {
+        if (mob.x == player.x && mob.y == player.y) {
+          console.log("It dead.");
+          mob.isDead = true;
+        }
+
         if (mob.isDead) return;
+
+        if (mob.type == 'even' && turnsTaken % 2 == 0) return;
+        if (mob.type == 'odd'  && turnsTaken % 2 == 1) return;
 
         const dir = Math.floor( 4 * Math.random() );
         if (dir == 0) { if (mob.x >  50) mob.x -= 25; }
@@ -122,11 +137,19 @@
         if (dir == 2) { if (mob.y >  50) mob.y -= 25; }
         if (dir == 3) { if (mob.x < 450) mob.x += 25; }
 
-        if (mob.x == player.x && mob.y == player.y) {
-          console.log("It dead.");
-          mob.isDead = true;
-        }
       });
+
+      turnsTaken++;
+
+      if (turnsTaken % 37 == 0) {
+        const newMob = {
+          x: (Math.floor( Math.random() * 9 ) + 1) * 25,
+          y: (Math.floor( Math.random() * 9 ) + 1) * 25,
+          type: (Math.random() > 0.5 ? 'even' : 'odd'),
+        };
+
+        mobs.push(newMob);
+      }
     }
 
     document.addEventListener("keyup", event => {
