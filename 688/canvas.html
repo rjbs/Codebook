@@ -3,8 +3,6 @@
     <canvas style='outline:thin black solid' id='canvas' width=500 height=500 />
   </div>
   <script type='text/javascript'>
-    var player = { x: 200, y: 250 };
-
     var target  = "Setec Astronomy";
     var chars   = target.split('');
     var hidden  = new Set( chars.keys() );
@@ -29,113 +27,153 @@
       return state;
     }
 
-    var mobs = [];
+    const SixEightyEight = class {
+      constructor () {
+        this.width  = 10;
+        this.height = 10;
+        this.turn   = 1;
 
-    var tick = 0;
-    var turnsTaken = 0;
+        this.player = { x: 2, y: 5 };
 
-    function draw() {
-      tick++;
-      var canvas = document.getElementById('canvas');
-      if (canvas.getContext) {
-        var ctx = canvas.getContext('2d');
-
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-        // The Wonky Blue Line
-        ctx.beginPath();
-        ctx.strokeStyle = 'blue';
-        ctx.moveTo(0, 100);
-
-        const tock = tick % 401;
-        const dy   = (tock > 200 ? 400 - tock : tock) - 100;
-        const dx   = dy / 2;
-
-        ctx.bezierCurveTo(200 + dx, 100 - dy, 300 + dx, 100 + dy, 500, 100);
-        ctx.stroke();
-
-        // The Scrambler
-        let stringState = nextStringState();
-        ctx.font = '48px monospace';
-
-        ctx.fillStyle = 'red';
-        ctx.fillText(stringState.random, 35, 50);
-
-        ctx.fillStyle = 'green';
-        ctx.fillText(stringState.found, 35, 50);
-
-        // The Adventurer
-        ctx.strokeStyle = 'orange';
-        ctx.fillStyle   = 'purple';
-        ctx.beginPath();
-        ctx.arc(player.x, player.y, 20, 0, 2 * Math.PI);
-        ctx.fill();
-
-        // Mobs
-        mobs.forEach(mob => {
-          if (mob.isDead) return;
-
-          ctx.strokeStyle = 'orange';
-          ctx.fillStyle   = mob.type == 'even' ? 'pink' : 'orange';
-
-          ctx.beginPath();
-          ctx.arc(mob.x, mob.y, 20, 0, 2 * Math.PI);
-          ctx.fill();
-        });
-
-        // Turn Count
-        ctx.font = '24px monospace';
-        ctx.fillStyle = 'blue';
-        ctx.fillText(`turn ${turnsTaken}`, 375, 490);
+        this.mobs   = [];
+        this.addRandomMob();
       }
 
-      window.requestAnimationFrame(draw);
-    }
-    window.requestAnimationFrame(draw);
-
-    mobs.push({ x: 25, y: 100, type: 'even' });
-
-    function takeTurn() {
-      console.log("turn taken");
-
-      mobs.forEach(mob => {
-        if (mob.x == player.x && mob.y == player.y) {
-          console.log("It dead.");
-          mob.isDead = true;
-        }
-
-        if (mob.isDead) return;
-
-        if (mob.type == 'even' && turnsTaken % 2 == 0) return;
-        if (mob.type == 'odd'  && turnsTaken % 2 == 1) return;
-
-        const dir = Math.floor( 4 * Math.random() );
-        if (dir == 0) { if (mob.x >  50) mob.x -= 25; }
-        if (dir == 1) { if (mob.y < 450) mob.y += 25; }
-        if (dir == 2) { if (mob.y >  50) mob.y -= 25; }
-        if (dir == 3) { if (mob.x < 450) mob.x += 25; }
-
-      });
-
-      turnsTaken++;
-
-      if (turnsTaken % 37 == 0) {
+      addRandomMob() {
         const newMob = {
-          x: (Math.floor( Math.random() * 9 ) + 1) * 25,
-          y: (Math.floor( Math.random() * 9 ) + 1) * 25,
+          x: Math.floor( Math.random() * 10 ),
+          y: Math.floor( Math.random() * 10 ),
           type: (Math.random() > 0.5 ? 'even' : 'odd'),
         };
 
-        mobs.push(newMob);
+        this.mobs.push(newMob);
       }
-    }
+
+      takeTurn() {
+        this.mobs.forEach(mob => {
+          if (mob.x == this.player.x && mob.y == this.player.y) {
+            console.log("It dead.");
+            mob.isDead = true;
+          }
+
+          if (mob.isDead) return;
+
+          if (mob.type == 'even' && this.turn % 2 == 0) return;
+          if (mob.type == 'odd'  && this.turn % 2 == 1) return;
+
+          const dir = Math.floor( 4 * Math.random() );
+          if (dir == 0) { if (mob.x > 0) mob.x --; }
+          if (dir == 1) { if (mob.y < 9) mob.y ++; }
+          if (dir == 2) { if (mob.y > 0) mob.y --; }
+          if (dir == 3) { if (mob.x < 9) mob.x ++; }
+        });
+
+        this.turn++;
+
+        if (this.turn % 37 == 0) {
+          this.addRandomMob();
+        }
+      }
+    };
+
+    const Viewer = class {
+      constructor (game, canvas) {
+        // Consider barfing if canvas not square.
+        this.game   = game;
+        this.canvas = canvas;
+
+        this.tick   = 0;
+
+        window.requestAnimationFrame(this.draw.bind(this));
+      }
+
+      drawGridCircle (gridX, gridY) {
+        // we take 10px off the canvas on both sides and divide the rest of the
+        // canvas up into equal rectangles
+        const cellWidth   = (this.canvas.width  - 20) / this.game.width;
+        const cellHeight  = (this.canvas.height - 20) / this.game.height;
+
+        var ctx = canvas.getContext('2d');
+        ctx.beginPath();
+        ctx.arc(
+          Math.floor(10 + (1+gridX) * cellWidth  - cellWidth  / 2),
+          Math.floor(10 + (1+gridY) * cellHeight - cellHeight / 2),
+          20,
+          0,
+          2 * Math.PI
+        );
+        ctx.fill();
+      }
+
+      draw() {
+        this.tick++;
+
+        if (this.canvas.getContext) {
+          var ctx = canvas.getContext('2d');
+
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+          // The Wonky Blue Line
+          ctx.beginPath();
+          ctx.strokeStyle = 'blue';
+          ctx.moveTo(0, 100);
+
+          const tock = this.tick % 401;
+          const dy   = (tock > 200 ? 400 - tock : tock) - 100;
+          const dx   = dy / 2;
+
+          ctx.bezierCurveTo(200 + dx, 100 - dy, 300 + dx, 100 + dy, 500, 100);
+          ctx.stroke();
+
+          // The Scrambler
+          let stringState = nextStringState();
+          ctx.font = '48px monospace';
+
+          ctx.fillStyle = 'red';
+          ctx.fillText(stringState.random, 35, 50);
+
+          ctx.fillStyle = 'green';
+          ctx.fillText(stringState.found, 35, 50);
+
+          // The Adventurer
+          ctx.strokeStyle = 'orange';
+          ctx.fillStyle   = 'purple';
+          this.drawGridCircle(this.game.player.x, this.game.player.y);
+          // ctx.beginPath();
+          // ctx.arc(this.game.player.x, this.game.player.y, 20, 0, 2 * Math.PI);
+          // ctx.fill();
+
+          // Mobs
+          this.game.mobs.forEach(mob => {
+            if (mob.isDead) return;
+
+            ctx.strokeStyle = 'orange';
+            ctx.fillStyle   = mob.type == 'even' ? 'pink' : 'orange';
+
+            this.drawGridCircle(mob.x, mob.y);
+          });
+
+          // Turn Count
+          ctx.font = '24px monospace';
+          ctx.fillStyle = 'blue';
+          ctx.fillText(`turn ${this.game.turn}`, 375, 490);
+        }
+
+        window.requestAnimationFrame(this.draw.bind(this));
+      }
+    };
+
+    const game   = new SixEightyEight();
+    const viewer = new Viewer(game, document.getElementById('canvas'));
 
     document.addEventListener("keyup", event => {
       const code = event.code;
-      if (code == 'KeyH') { if (player.x >  50) player.x -= 25; takeTurn(); }
-      if (code == 'KeyJ') { if (player.y < 450) player.y += 25; takeTurn(); }
-      if (code == 'KeyK') { if (player.y >  50) player.y -= 25; takeTurn(); }
-      if (code == 'KeyL') { if (player.x < 450) player.x += 25; takeTurn(); }
+      const player = game.player;
+
+      if (code == 'KeyH') { if (player.x > 0) player.x --; game.takeTurn(); }
+      if (code == 'KeyJ') { if (player.y < 9) player.y ++; game.takeTurn(); }
+      if (code == 'KeyK') { if (player.y > 0) player.y --; game.takeTurn(); }
+      if (code == 'KeyL') { if (player.x < 9) player.x ++; game.takeTurn(); }
     });
   </script>
 </html>
