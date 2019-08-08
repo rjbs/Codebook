@@ -120,18 +120,28 @@ const Viewer = class {
     window.requestAnimationFrame(this.draw.bind(this));
   }
 
-  drawGridCircle (gridX, gridY) {
+  gridDrawTarget (gridX, gridY) {
     // we take 10px off the canvas on both sides and divide the rest of the
     // canvas up into equal rectangles
     const cellWidth   = (this.canvas.width  - 20) / this.game.width;
     const cellHeight  = (this.canvas.height - 20) / this.game.height;
 
+    return {
+      x: Math.floor(10 + (1+gridX) * cellWidth  - cellWidth  / 2),
+      y: Math.floor(10 + (1+gridY) * cellHeight - cellHeight / 2),
+      d: cellWidth,
+    };
+  }
+
+  drawGridCircle (gridX, gridY) {
+    const target = this.gridDrawTarget(gridX, gridY);
+
     var ctx = canvas.getContext('2d');
     ctx.beginPath();
     ctx.arc(
-      Math.floor(10 + (1+gridX) * cellWidth  - cellWidth  / 2),
-      Math.floor(10 + (1+gridY) * cellHeight - cellHeight / 2),
-      20,
+      target.x,
+      target.y,
+      target.d / 2,
       0,
       2 * Math.PI
     );
