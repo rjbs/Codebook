@@ -59,11 +59,11 @@
         ctx.strokeStyle = 'blue';
         ctx.moveTo(100, 100);
 
-        const tock = tick % 301;
-        const dx   = (tock > 150 ? 300 - tock : tock) - 50;
-        const dy   = dx / 2;
+        const tock = tick * 2 % 401;
+        const dy   = (tock > 200 ? 400 - tock : tock) - 100;
+        const dx   = dy / 2;
 
-        ctx.bezierCurveTo(200 + dy, 100 - dx, 300 + dy, 100 + dx, 400, 100);
+        ctx.bezierCurveTo(200 + dx, 100 - dy, 300 + dx, 100 + dy, 400, 100);
         ctx.stroke();
 
 
