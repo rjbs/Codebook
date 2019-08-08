@@ -3,9 +3,6 @@
     <canvas style='outline:thin black solid' id='canvas' width=500 height=500 />
   </div>
   <script type='text/javascript'>
-    var last = { x: 200, y: 50 };
-    var dir  = { x: +1, y: +1 };
-
     var player = { x: 200, y: 250 };
 
     var target  = "Setec Astronomy";
@@ -44,25 +41,6 @@
         var ctx = canvas.getContext('2d');
 
         ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-        /* Dumb moving box code.
-
-        last.x += Math.random() * 4 * dir.x;
-        last.y += Math.random() * 4 * dir.y;
-
-        if (last.x + 50 >= canvas.width || last.x <= 0) {
-          dir.x *= -1;
-        }
-
-        if (last.y + 50 >= canvas.height || last.y <= 0) {
-          dir.y *= -1;
-        }
-
-        ctx.strokeStyle = 'black';
-        ctx.fillStyle = 'pink';
-
-        ctx.fillRect(last.x, last.x, 50, 50);
-        */
 
         // The Wonky Blue Line
         ctx.beginPath();
