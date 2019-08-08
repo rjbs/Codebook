@@ -51,6 +51,11 @@ const SixEightyEight = class {
       if (code == 'KeyJ') { this.takeTurn({ move: { x:  0, y: +1 } }); }
       if (code == 'KeyK') { this.takeTurn({ move: { x:  0, y: -1 } }); }
       if (code == 'KeyL') { this.takeTurn({ move: { x: +1, y:  0 } }); }
+
+      if (code == 'KeyW') { this.takeTurn({ move: { x:  0, y: -1 } }); }
+      if (code == 'KeyA') { this.takeTurn({ move: { x: -1, y:  0 } }); }
+      if (code == 'KeyS') { this.takeTurn({ move: { x:  0, y: +1 } }); }
+      if (code == 'KeyD') { this.takeTurn({ move: { x: +1, y:  0 } }); }
     });
   }
 
