@@ -42,6 +42,16 @@ const SixEightyEight = class {
 
     this.mobs   = [];
     this.addRandomMob();
+
+    document.addEventListener("keyup", event => {
+      const code = event.code;
+      const player = this.player;
+
+      if (code == 'KeyH') { this.takeTurn({ move: { x: -1, y:  0 } }); }
+      if (code == 'KeyJ') { this.takeTurn({ move: { x:  0, y: +1 } }); }
+      if (code == 'KeyK') { this.takeTurn({ move: { x:  0, y: -1 } }); }
+      if (code == 'KeyL') { this.takeTurn({ move: { x: +1, y:  0 } }); }
+    });
   }
 
   addRandomMob() {
@@ -188,13 +198,3 @@ const Viewer = class {
 
 const game   = new SixEightyEight();
 const viewer = new Viewer(game, document.getElementById('canvas'));
-
-document.addEventListener("keyup", event => {
-  const code = event.code;
-  const player = game.player;
-
-  if (code == 'KeyH') { game.takeTurn({ move: { x: -1, y:  0 } }); }
-  if (code == 'KeyJ') { game.takeTurn({ move: { x:  0, y: +1 } }); }
-  if (code == 'KeyK') { game.takeTurn({ move: { x:  0, y: -1 } }); }
-  if (code == 'KeyL') { game.takeTurn({ move: { x: +1, y:  0 } }); }
-});
