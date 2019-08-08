@@ -32,6 +32,8 @@
       return state;
     }
 
+    var mobs = [];
+
     var tick = 0;
     function draw() {
       tick++;
@@ -40,6 +42,8 @@
         var ctx = canvas.getContext('2d');
 
         ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        /* Dumb moving box code.
 
         last.x += Math.random() * 4 * dir.x;
         last.y += Math.random() * 4 * dir.y;
@@ -56,18 +60,21 @@
         ctx.fillStyle = 'pink';
 
         ctx.fillRect(last.x, last.x, 50, 50);
+        */
 
+        // The Wonky Blue Line
         ctx.beginPath();
         ctx.strokeStyle = 'blue';
-        ctx.moveTo(100, 100);
+        ctx.moveTo(0, 100);
 
-        const tock = tick * 2 % 401;
+        const tock = tick % 401;
         const dy   = (tock > 200 ? 400 - tock : tock) - 100;
         const dx   = dy / 2;
 
-        ctx.bezierCurveTo(200 + dx, 100 - dy, 300 + dx, 100 + dy, 400, 100);
+        ctx.bezierCurveTo(200 + dx, 100 - dy, 300 + dx, 100 + dy, 500, 100);
         ctx.stroke();
 
+        // The Scrambler
         let stringState = nextStringState();
         ctx.font = '48px monospace';
 
@@ -77,22 +84,57 @@
         ctx.fillStyle = 'green';
         ctx.fillText(stringState.found, 35, 50);
 
+        // The Adventurer
         ctx.strokeStyle = 'orange';
         ctx.fillStyle   = 'purple';
         ctx.beginPath();
         ctx.arc(player.x, player.y, 20, 0, 2 * Math.PI);
         ctx.fill();
+
+        // Mobs
+        mobs.forEach(mob => {
+          if (mob.isDead) return;
+
+          ctx.strokeStyle = 'orange';
+          ctx.fillStyle   = 'pink';
+
+          ctx.beginPath();
+          ctx.arc(mob.x, mob.y, 20, 0, 2 * Math.PI);
+          ctx.fill();
+        });
       }
 
       window.requestAnimationFrame(draw);
     }
     window.requestAnimationFrame(draw);
 
+    mobs.push({ x: 25, y: 100 });
+
+    function takeTurn() {
+      console.log("turn taken");
+
+      mobs.forEach(mob => {
+        if (mob.isDead) return;
+
+        const dir = Math.floor( 4 * Math.random() );
+        if (dir == 0) { if (mob.x >  50) mob.x -= 25; }
+        if (dir == 1) { if (mob.y < 450) mob.y += 25; }
+        if (dir == 2) { if (mob.y >  50) mob.y -= 25; }
+        if (dir == 3) { if (mob.x < 450) mob.x += 25; }
+
+        if (mob.x == player.x && mob.y == player.y) {
+          console.log("It dead.");
+          mob.isDead = true;
+        }
+      });
+    }
+
     document.addEventListener("keyup", event => {
-      if (event.code == 'KeyH') { if (player.x >  50) player.x -= 25; }
-      if (event.code == 'KeyJ') { if (player.y < 450) player.y += 25; }
-      if (event.code == 'KeyK') { if (player.y >  50) player.y -= 25; }
-      if (event.code == 'KeyL') { if (player.x < 450) player.x += 25; }
+      const code = event.code;
+      if (code == 'KeyH') { if (player.x >  50) player.x -= 25; takeTurn(); }
+      if (code == 'KeyJ') { if (player.y < 450) player.y += 25; takeTurn(); }
+      if (code == 'KeyK') { if (player.y >  50) player.y -= 25; takeTurn(); }
+      if (code == 'KeyL') { if (player.x < 450) player.x += 25; takeTurn(); }
     });
   </script>
 </html>
