@@ -49,7 +49,20 @@
         this.mobs.push(newMob);
       }
 
-      takeTurn() {
+      moveMob (mob, move) {
+        const newX = mob.x + move.x;
+        const newY = mob.y + move.y;
+
+        // FIXME the "-1" here is bogus, means underlying bug
+        mob.x = Math.min(this.width  -1,  Math.max(0, newX));
+        mob.y = Math.min(this.height -1,  Math.max(0, newY));
+      }
+
+      takeTurn(action) {
+        if (action.move) {
+          this.moveMob(this.player, action.move);
+        }
+
         this.mobs.forEach(mob => {
           if (mob.x == this.player.x && mob.y == this.player.y) {
             console.log("It dead.");
@@ -61,11 +74,14 @@
           if (mob.type == 'even' && this.turn % 2 == 0) return;
           if (mob.type == 'odd'  && this.turn % 2 == 1) return;
 
-          const dir = Math.floor( 4 * Math.random() );
-          if (dir == 0) { if (mob.x > 0) mob.x --; }
-          if (dir == 1) { if (mob.y < 9) mob.y ++; }
-          if (dir == 2) { if (mob.y > 0) mob.y --; }
-          if (dir == 3) { if (mob.x < 9) mob.x ++; }
+          const dir  = Math.floor( 4 * Math.random() );
+          const move = dir == 0 ? { x: -1, y:  0 }
+                     : dir == 1 ? { x:  0, y: +1 }
+                     : dir == 2 ? { x:  0, y: -1 }
+                     : dir == 3 ? { x: +1, y:  0 }
+                     :            undefined; // unreachable
+
+          this.moveMob(mob, move);
         });
 
         this.turn++;
@@ -170,10 +186,10 @@
       const code = event.code;
       const player = game.player;
 
-      if (code == 'KeyH') { if (player.x > 0) player.x --; game.takeTurn(); }
-      if (code == 'KeyJ') { if (player.y < 9) player.y ++; game.takeTurn(); }
-      if (code == 'KeyK') { if (player.y > 0) player.y --; game.takeTurn(); }
-      if (code == 'KeyL') { if (player.x < 9) player.x ++; game.takeTurn(); }
+      if (code == 'KeyH') { game.takeTurn({ move: { x: -1, y:  0 } }); }
+      if (code == 'KeyJ') { game.takeTurn({ move: { x:  0, y: +1 } }); }
+      if (code == 'KeyK') { game.takeTurn({ move: { x:  0, y: -1 } }); }
+      if (code == 'KeyL') { game.takeTurn({ move: { x: +1, y:  0 } }); }
     });
   </script>
 </html>
