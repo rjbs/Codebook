@@ -1,26 +1,36 @@
-var target  = "Setec Astronomy";
-var chars   = target.split('');
-var hidden  = new Set( chars.keys() );
-var pick    = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ".split('');
+const TextSpinner = class {
+  constructor (text) {
+    this.pick = ("0123456789"
+              + "abcdefghijklmnopqrstuvwxyz"
+              + "ABCDEFGHIJKLMNOPQRSTUVWXYZ").split('');
 
-const randInt = i => Math.floor( Math.random() * i );
+    this.target  = text;
+    this.chars   = text.split('');
+    this.hidden  = new Set( this.chars.keys() );
+  }
 
-const getRandom = s => [...s.values()][ randInt(s.size) ];
+  nextStringState () {
+    if (this.hidden.size == 0) return { random: "", found: this.target };
 
-function nextStringState () {
-  if (hidden.size == 0) return { random: "", found: target };
+    const randInt   = i => Math.floor( Math.random() * i );
+    const getRandom = s => [...s.values()][ randInt(s.size) ];
 
-  if (Math.random() > 0.98) hidden.delete( getRandom(hidden) );
+    if (Math.random() > 0.98) this.hidden.delete( getRandom(this.hidden) );
 
-  let state = {};
-  state.random = chars.map(
-    (c, i) => hidden.has(i) ? pick[ randInt(pick.length) ] : ' ')
-    .join('');
+    let state = {};
+    state.random = this.chars.map(
+      (c, i) => this.hidden.has(i)
+                ? this.pick[ randInt(this.pick.length) ]
+                : ' '
+    ).join('');
 
-  state.found  = chars.map((c, i) => hidden.has(i) ? ' ' : c).join('');
+    state.found  = this.chars.map(
+      (c, i) => this.hidden.has(i) ? ' ' : c
+    ).join('');
 
-  return state;
-}
+    return state;
+  }
+};
 
 const SixEightyEight = class {
   constructor () {
@@ -95,6 +105,8 @@ const Viewer = class {
 
     this.tick   = 0;
 
+    this.spinner = new TextSpinner("Setec Astronomy");
+
     window.requestAnimationFrame(this.draw.bind(this));
   }
 
@@ -137,7 +149,7 @@ const Viewer = class {
       ctx.stroke();
 
       // The Scrambler
-      let stringState = nextStringState();
+      let stringState = this.spinner.nextStringState();
       ctx.font = '48px monospace';
 
       ctx.fillStyle = 'red';
