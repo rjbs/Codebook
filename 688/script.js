@@ -34,8 +34,8 @@ const TextSpinner = class {
 
 const SixEightyEight = class {
   constructor () {
-    this.width  = 10;
-    this.height = 10;
+    this.width  = 15;
+    this.height = 15;
     this.turn   = 1;
 
     this.player = { x: 2, y: 5 };
@@ -112,36 +112,56 @@ const SixEightyEight = class {
   }
 };
 
-const Viewer = class {
-  constructor (game, canvas) {
-    // Consider barfing if canvas not square.
-    this.game   = game;
-    this.canvas = canvas;
+const GridRenderer = class {
+  constructor (renderer, x1, y1, x2, y2) {
+    this.x1 = x1;
+    this.y1 = y1;
+    this.x2 = x2;
+    this.y2 = y2;
 
-    this.tick   = 0;
+    this.renderer = renderer;
+  }
 
-    this.spinner = new TextSpinner("Setec Astronomy");
+  renderGrid () {
+    const renderer = this.renderer;
+    var ctx = renderer.canvas.getContext('2d');
 
-    window.requestAnimationFrame(this.draw.bind(this));
+    // The Adventurer
+    ctx.strokeStyle = 'orange';
+    ctx.fillStyle   = 'purple';
+
+    this.drawGridCircle(renderer.game.player.x, renderer.game.player.y);
+
+    // Mobs
+    renderer.game.mobs.forEach(mob => {
+      if (mob.isDead) return;
+
+      ctx.strokeStyle = 'orange';
+      ctx.fillStyle   = mob.type == 'even' ? 'pink' : 'orange';
+
+      this.drawGridCircle(mob.x, mob.y);
+    });
   }
 
   gridDrawTarget (gridX, gridY) {
-    // we take 10px off the canvas on both sides and divide the rest of the
-    // canvas up into equal rectangles
-    const cellWidth   = (this.canvas.width  - 20) / this.game.width;
-    const cellHeight  = (this.canvas.height - 20) / this.game.height;
+    const renderer = this.renderer;
 
-    return {
-      x: Math.floor(10 + (1+gridX) * cellWidth  - cellWidth  / 2),
-      y: Math.floor(10 + (1+gridY) * cellHeight - cellHeight / 2),
+    const cellWidth   = (this.x2 - this.x1) / renderer.game.width;
+    const cellHeight  = (this.y2 - this.y1) / renderer.game.height;
+
+    const t = {
+      x: Math.floor(this.x1 + (1+gridX) * cellWidth  - cellWidth  / 2),
+      y: Math.floor(this.y1 + (1+gridY) * cellHeight - cellHeight / 2),
       d: cellWidth,
     };
+
+    return t;
   }
 
   drawGridCircle (gridX, gridY) {
     const target = this.gridDrawTarget(gridX, gridY);
 
-    var ctx = canvas.getContext('2d');
+    var ctx = this.renderer.canvas.getContext('2d');
     ctx.beginPath();
     ctx.arc(
       target.x,
@@ -151,6 +171,30 @@ const Viewer = class {
       2 * Math.PI
     );
     ctx.fill();
+  }
+}
+
+const Renderer = class {
+  constructor (game, canvas) {
+    // Consider barfing if canvas not square.
+    this.game   = game;
+    this.canvas = canvas;
+
+    this.tick   = 0;
+
+    this.spinner = new TextSpinner("Setec Astronomy");
+
+    // We're going to reserve the top 15% of the canvas and the bottom 5%.
+    // Also, the left and right 5%
+    const x1 = this.canvas.width  * 0.02;
+    const y1 = this.canvas.height * 0.15;
+    const x2 = this.canvas.width  * 0.98;
+    const y2 = this.canvas.height * 0.95;
+    this.gridRenderer = new GridRenderer(this, x1, y1, x2, y2);
+
+    console.log(this.gridRenderer);
+
+    window.requestAnimationFrame(this.draw.bind(this));
   }
 
   draw() {
@@ -183,33 +227,17 @@ const Viewer = class {
       ctx.fillStyle = 'green';
       ctx.fillText(stringState.found, 35, 50);
 
-      // The Adventurer
-      ctx.strokeStyle = 'orange';
-      ctx.fillStyle   = 'purple';
-      this.drawGridCircle(this.game.player.x, this.game.player.y);
-      // ctx.beginPath();
-      // ctx.arc(this.game.player.x, this.game.player.y, 20, 0, 2 * Math.PI);
-      // ctx.fill();
-
-      // Mobs
-      this.game.mobs.forEach(mob => {
-        if (mob.isDead) return;
-
-        ctx.strokeStyle = 'orange';
-        ctx.fillStyle   = mob.type == 'even' ? 'pink' : 'orange';
-
-        this.drawGridCircle(mob.x, mob.y);
-      });
+      this.gridRenderer.renderGrid();
 
       // Turn Count
       ctx.font = '24px monospace';
       ctx.fillStyle = 'blue';
-      ctx.fillText(`turn ${this.game.turn}`, 375, 490);
+      ctx.fillText(`turn ${this.game.turn}`, 375, 495);
     }
 
     window.requestAnimationFrame(this.draw.bind(this));
   }
 };
 
-const game   = new SixEightyEight();
-const viewer = new Viewer(game, document.getElementById('canvas'));
+const game  = new SixEightyEight();
+const rrr   = new Renderer(game, document.getElementById('canvas'));
