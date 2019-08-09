@@ -32,6 +32,13 @@ const TextSpinner = class {
   }
 };
 
+const Animation = class {
+  constructor (x, y) {
+    this.x = x;
+    this.y = y;
+  }
+}
+
 const SixEightyEight = class {
   constructor () {
     this.width  = 20;
@@ -42,6 +49,8 @@ const SixEightyEight = class {
 
     this.mobs   = [];
     this.addRandomMob();
+
+    this.animations = [];
 
     document.addEventListener("keyup", event => {
       const code = event.code;
@@ -87,6 +96,25 @@ const SixEightyEight = class {
       if (mob.x == this.player.x && mob.y == this.player.y) {
         console.log("It dead.");
         mob.isDead = true;
+
+        let ani = new Animation(mob.x, mob.y);
+        ani.d = 0;
+        ani.draw = (ctx, rect) => {
+          ctx.strokeStyle = '#f00';
+          ctx.beginPath();
+          ctx.arc(
+            rect.x1 + ((rect.x2 - rect.x1) / 2),
+            rect.y1 + ((rect.y2 - rect.y1) / 2),
+            ani.d,
+            0,
+            2 * Math.PI
+          );
+          ctx.stroke();
+          ani.d += 2;
+          if (ani.d > 2 * (rect.x2 - rect.x1)) ani.isDone = true;
+        };
+
+        this.animations.push(ani);
       }
 
       if (mob.isDead) return;
@@ -103,6 +131,9 @@ const SixEightyEight = class {
 
       this.moveMob(mob, move);
     });
+
+    this.mobs = this.mobs.filter(x => ! x.isDead);
+    this.animations = this.animations.filter(x => ! x.isDone);
 
     this.turn++;
 
@@ -187,6 +218,16 @@ const GridRenderer = class {
 
       this.drawGridCircle(mob.x, mob.y);
     });
+
+    // Animations
+    renderer.game.animations.forEach(ani => {
+      if (ani.isDone) return;
+
+      ani.draw(
+        this.renderer.canvas.getContext('2d'),
+        this.cellRect(ani.x, ani.y),
+      );
+    });
   }
 
   cellRect (gridX, gridY) {
@@ -235,8 +276,6 @@ const Renderer = class {
     const y2 = this.canvas.height * 0.95;
 
     this.gridRenderer = new GridRenderer(this, x1, y1, x2, y2);
-
-    console.log(this.gridRenderer);
 
     window.requestAnimationFrame(this.draw.bind(this));
   }
