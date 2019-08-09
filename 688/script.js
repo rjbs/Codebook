@@ -119,12 +119,36 @@ const GridRenderer = class {
     this.x2 = x2;
     this.y2 = y2;
 
+    // FIXME instead, we shouldn't care whether the grid is square, but should
+    // instead divide it up into squares, so we can end up with our bounding
+    // rectange fully inside the one we're given; we should accept a 10x20
+    // grid, but each cell should be a square
+    if ((x2 - x1) != (y2 - y1)) throw "Grid boundaries are not square";
+
+    this.cellWidth  = (x2 - x1) / renderer.game.width;
+    this.cellHeight = (y2 - y1) / renderer.game.height;
+
     this.renderer = renderer;
   }
 
   renderGrid () {
     const renderer = this.renderer;
     var ctx = renderer.canvas.getContext('2d');
+
+    ctx.strokeStyle = '#eee';
+    for (let x = 0; x <= this.renderer.game.width; x++) {
+      ctx.beginPath();
+      ctx.moveTo(this.x1 + x * this.cellWidth, this.y1);
+      ctx.lineTo(this.x1 + x * this.cellWidth, this.y2);
+      ctx.stroke()
+    }
+
+    for (let y = 0; y <= this.renderer.game.height; y++) {
+      ctx.beginPath();
+      ctx.moveTo(this.x1, this.y1 + y * this.cellHeight);
+      ctx.lineTo(this.x2, this.y1 + y * this.cellHeight);
+      ctx.stroke()
+    }
 
     // The Adventurer
     ctx.strokeStyle = 'orange';
@@ -143,30 +167,27 @@ const GridRenderer = class {
     });
   }
 
-  gridDrawTarget (gridX, gridY) {
-    const renderer = this.renderer;
-
-    const cellWidth   = (this.x2 - this.x1) / renderer.game.width;
-    const cellHeight  = (this.y2 - this.y1) / renderer.game.height;
-
-    const t = {
-      x: Math.floor(this.x1 + (1+gridX) * cellWidth  - cellWidth  / 2),
-      y: Math.floor(this.y1 + (1+gridY) * cellHeight - cellHeight / 2),
-      d: cellWidth,
+  cellRect (gridX, gridY) {
+    let rect = {
+      x1: this.x1 + gridX * this.cellWidth,
+      y1: this.y1 + gridY * this.cellHeight,
     };
 
-    return t;
+    rect.x2 = rect.x1 + this.cellWidth  - 1;
+    rect.y2 = rect.y1 + this.cellHeight - 1;
+
+    return rect;
   }
 
   drawGridCircle (gridX, gridY) {
-    const target = this.gridDrawTarget(gridX, gridY);
+    const target = this.cellRect(gridX, gridY);
 
     var ctx = this.renderer.canvas.getContext('2d');
     ctx.beginPath();
     ctx.arc(
-      target.x,
-      target.y,
-      target.d / 2,
+      target.x1 + ((target.x2 - target.x1) / 2),
+      target.y1 + ((target.y2 - target.y1) / 2),
+      Math.min(target.x2 - target.x1, target.y2 - target.y1) / 2,
       0,
       2 * Math.PI
     );
@@ -186,10 +207,33 @@ const Renderer = class {
 
     // We're going to reserve the top 15% of the canvas and the bottom 5%.
     // Also, the left and right 5%
-    const x1 = this.canvas.width  * 0.02;
-    const y1 = this.canvas.height * 0.15;
-    const x2 = this.canvas.width  * 0.98;
-    const y2 = this.canvas.height * 0.95;
+    let x1 = this.canvas.width  * 0.02;
+    let y1 = this.canvas.height * 0.15;
+    let x2 = this.canvas.width  * 0.98;
+    let y2 = this.canvas.height * 0.95;
+
+    {
+      const width   = x2 - x1;
+      const height  = y2 - y1;
+
+      // The resulting shape is probably not square.  If the subgrid height
+      // != width, we want to pick the smaller one as the target size, then
+      // shrink in both sides by half the difference.  If the difference is
+      // odd, we'll take the extra pixel from the top or left.
+      const adjust  = Math.abs(height - width);
+      const adjeach = Math.floor(adjust / 2);
+
+      if (height > width) {
+        y1 += adjeach;
+        y2 -= adjeach;
+        if (adjust % 2 == 1) y1++;
+      } else if (width > height) {
+        x1 += adjeach;
+        x2 -= adjeach;
+        if (adjust % 2 == 1) x1++;
+      }
+    }
+
     this.gridRenderer = new GridRenderer(this, x1, y1, x2, y2);
 
     console.log(this.gridRenderer);
