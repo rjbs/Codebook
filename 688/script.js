@@ -34,8 +34,8 @@ const TextSpinner = class {
 
 const SixEightyEight = class {
   constructor () {
-    this.width  = 15;
-    this.height = 15;
+    this.width  = 20;
+    this.height = 16;
     this.turn   = 1;
 
     this.player = { x: 2, y: 5 };
@@ -114,19 +114,41 @@ const SixEightyEight = class {
 
 const GridRenderer = class {
   constructor (renderer, x1, y1, x2, y2) {
+    // So, we got a bounding rectangle, and we know how many grid cells we need
+    // it to be both tall and wide.  We want each cell to be a square, so we
+    // need to compute the most efficient cell size to get squares inside the
+    // available space, then center our subgrid inside the one we were given.
+    this.cellSide = Math.min(
+      Math.floor((y2 - y1) / renderer.game.height),
+      Math.floor((x2 - x1) / renderer.game.width),
+    );
+
+    let height = this.cellSide * renderer.game.height;
+    let width  = this.cellSide * renderer.game.width;
+
+    // The resulting shape is almost certainly not exactly the same size as the
+    // one we were passed.  We want to nudge the corners that we were given
+    // inward to match the height and width we've got.  If the difference is
+    // odd, we nudge the bottom and left in more.
+
+    {
+      const adjHeight = y2 - y1 - height;
+      const adjEachY  = Math.floor(adjHeight / 2);
+      y1 += adjEachY;
+      y2 -= adjEachY;
+      if (adjHeight % 2 == 1) y1++;
+
+      const adjWidth  = x2 - x1 - width;
+      const adjEachX  = Math.floor(adjWidth / 2);
+      x1 += adjEachX;
+      x2 -= adjEachX;
+      if (adjWidth % 2 == 1) x1++;
+    }
+
     this.x1 = x1;
     this.y1 = y1;
     this.x2 = x2;
     this.y2 = y2;
-
-    // FIXME instead, we shouldn't care whether the grid is square, but should
-    // instead divide it up into squares, so we can end up with our bounding
-    // rectange fully inside the one we're given; we should accept a 10x20
-    // grid, but each cell should be a square
-    if ((x2 - x1) != (y2 - y1)) throw "Grid boundaries are not square";
-
-    this.cellWidth  = (x2 - x1) / renderer.game.width;
-    this.cellHeight = (y2 - y1) / renderer.game.height;
 
     this.renderer = renderer;
   }
@@ -138,15 +160,15 @@ const GridRenderer = class {
     ctx.strokeStyle = '#eee';
     for (let x = 0; x <= this.renderer.game.width; x++) {
       ctx.beginPath();
-      ctx.moveTo(this.x1 + x * this.cellWidth, this.y1);
-      ctx.lineTo(this.x1 + x * this.cellWidth, this.y2);
+      ctx.moveTo(this.x1 + x * this.cellSide, this.y1);
+      ctx.lineTo(this.x1 + x * this.cellSide, this.y2);
       ctx.stroke()
     }
 
     for (let y = 0; y <= this.renderer.game.height; y++) {
       ctx.beginPath();
-      ctx.moveTo(this.x1, this.y1 + y * this.cellHeight);
-      ctx.lineTo(this.x2, this.y1 + y * this.cellHeight);
+      ctx.moveTo(this.x1, this.y1 + y * this.cellSide);
+      ctx.lineTo(this.x2, this.y1 + y * this.cellSide);
       ctx.stroke()
     }
 
@@ -169,12 +191,12 @@ const GridRenderer = class {
 
   cellRect (gridX, gridY) {
     let rect = {
-      x1: this.x1 + gridX * this.cellWidth,
-      y1: this.y1 + gridY * this.cellHeight,
+      x1: this.x1 + gridX * this.cellSide,
+      y1: this.y1 + gridY * this.cellSide,
     };
 
-    rect.x2 = rect.x1 + this.cellWidth  - 1;
-    rect.y2 = rect.y1 + this.cellHeight - 1;
+    rect.x2 = rect.x1 + this.cellSide - 1;
+    rect.y2 = rect.y1 + this.cellSide - 1;
 
     return rect;
   }
@@ -207,32 +229,10 @@ const Renderer = class {
 
     // We're going to reserve the top 15% of the canvas and the bottom 5%.
     // Also, the left and right 5%
-    let x1 = this.canvas.width  * 0.02;
-    let y1 = this.canvas.height * 0.15;
-    let x2 = this.canvas.width  * 0.98;
-    let y2 = this.canvas.height * 0.95;
-
-    {
-      const width   = x2 - x1;
-      const height  = y2 - y1;
-
-      // The resulting shape is probably not square.  If the subgrid height
-      // != width, we want to pick the smaller one as the target size, then
-      // shrink in both sides by half the difference.  If the difference is
-      // odd, we'll take the extra pixel from the top or left.
-      const adjust  = Math.abs(height - width);
-      const adjeach = Math.floor(adjust / 2);
-
-      if (height > width) {
-        y1 += adjeach;
-        y2 -= adjeach;
-        if (adjust % 2 == 1) y1++;
-      } else if (width > height) {
-        x1 += adjeach;
-        x2 -= adjeach;
-        if (adjust % 2 == 1) x1++;
-      }
-    }
+    const x1 = this.canvas.width  * 0.02;
+    const y1 = this.canvas.height * 0.15;
+    const x2 = this.canvas.width  * 0.98;
+    const y2 = this.canvas.height * 0.95;
 
     this.gridRenderer = new GridRenderer(this, x1, y1, x2, y2);
 
