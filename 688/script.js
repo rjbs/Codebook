@@ -39,13 +39,29 @@ const Animation = class {
   }
 }
 
+const Mob = class {
+  constructor (x, y) {
+    this.x = x;
+    this.y = y;
+
+    this.type = Math.random() > 0.5 ? 'even' : 'odd';
+  }
+
+  render (ctx, renderer) {
+    ctx.strokeStyle = 'orange';
+    ctx.fillStyle   = this.type == 'even' ? 'pink' : 'orange';
+
+    renderer.drawGridCircle(this.x, this.y);
+  }
+}
+
 const SixEightyEight = class {
   constructor () {
     this.width  = 20;
     this.height = 16;
     this.turn   = 1;
 
-    this.player = { x: 2, y: 5 };
+    this.player = new Player(2, 5);
 
     this.mobs   = [];
     this.addRandomMob();
@@ -69,11 +85,10 @@ const SixEightyEight = class {
   }
 
   addRandomMob() {
-    const newMob = {
-      x: Math.floor( Math.random() * 10 ),
-      y: Math.floor( Math.random() * 10 ),
-      type: (Math.random() > 0.5 ? 'even' : 'odd'),
-    };
+    let newMob = new Mob(
+      Math.floor( Math.random() * 10 ),
+      Math.floor( Math.random() * 10 ),
+    );
 
     this.mobs.push(newMob);
   }
@@ -143,6 +158,19 @@ const SixEightyEight = class {
   }
 };
 
+const Player = class {
+  constructor (x, y) {
+    this.x = x;
+    this.y = y;
+  }
+
+  render (ctx, renderer) {
+    ctx.fillStyle   = 'purple';
+
+    renderer.drawGridCircle(this.x, this.y);
+  }
+}
+
 const GridRenderer = class {
   constructor (renderer, x1, y1, x2, y2) {
     // So, we got a bounding rectangle, and we know how many grid cells we need
@@ -204,19 +232,13 @@ const GridRenderer = class {
     }
 
     // The Adventurer
-    ctx.strokeStyle = 'orange';
-    ctx.fillStyle   = 'purple';
-
-    this.drawGridCircle(renderer.game.player.x, renderer.game.player.y);
+    renderer.game.player.render(ctx, this);
 
     // Mobs
     renderer.game.mobs.forEach(mob => {
       if (mob.isDead) return;
 
-      ctx.strokeStyle = 'orange';
-      ctx.fillStyle   = mob.type == 'even' ? 'pink' : 'orange';
-
-      this.drawGridCircle(mob.x, mob.y);
+      mob.render(ctx, this);
     });
 
     // Animations
