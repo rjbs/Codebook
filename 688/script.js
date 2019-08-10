@@ -280,10 +280,22 @@ const GridRenderer = class {
   }
 
   drawGridCircle (xy, ctx) {
-    const cell = this.cellRect(xy.x, xy.y);
+    const rect = this.cellRect(xy.x, xy.y);
 
     ctx.beginPath();
-    ctx.arc(cell.xmid, cell.ymid, (this.cellSide / 2) - 2, 0, 2 * Math.PI);
+    ctx.arc(rect.xmid, rect.ymid, (this.cellSide / 2) - 2, 0, 2 * Math.PI);
+    ctx.fill();
+  }
+
+  drawGridTriangle (xy, ctx) {
+    const rect = this.cellRect(xy.x, xy.y);
+
+    ctx.beginPath();
+    ctx.moveTo(rect.xmid, rect.y1 + 1);
+    ctx.lineTo(rect.x2 - 1, rect.y2 - 1);
+    ctx.lineTo(rect.x1 + 1, rect.y2 - 1);
+    ctx.moveTo(rect.xmid, rect.y1 + 1);
+    ctx.closePath();
     ctx.fill();
   }
 }
