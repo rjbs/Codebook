@@ -36,6 +36,7 @@ const TextSpinner = class {
 
     return state;
   }
+
 };
 
 const Animation = class {
