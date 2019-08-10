@@ -33,9 +33,12 @@ const TextSpinner = class {
 };
 
 const Animation = class {
-  constructor (x, y) {
-    this.x = x;
-    this.y = y;
+  constructor (param) {
+    Object.assign(this, param);
+  }
+
+  render (grender, ctx) {
+    this.draw.call(this, grender, ctx);
   }
 }
 
@@ -47,11 +50,11 @@ const Mob = class {
     this.type = Math.random() > 0.5 ? 'even' : 'odd';
   }
 
-  render (ctx, renderer) {
+  render (grender, ctx) {
     ctx.strokeStyle = 'orange';
     ctx.fillStyle   = this.type == 'even' ? 'pink' : 'orange';
 
-    renderer.drawGridCircle(this.x, this.y);
+    grender.drawGridCircle(this, ctx);
   }
 }
 
@@ -112,22 +115,26 @@ const SixEightyEight = class {
         console.log("It dead.");
         mob.isDead = true;
 
-        let ani = new Animation(mob.x, mob.y);
-        ani.d = 0;
-        ani.draw = (ctx, rect) => {
-          ctx.strokeStyle = '#f00';
-          ctx.beginPath();
-          ctx.arc(
-            rect.x1 + ((rect.x2 - rect.x1) / 2),
-            rect.y1 + ((rect.y2 - rect.y1) / 2),
-            ani.d,
-            0,
-            2 * Math.PI
-          );
-          ctx.stroke();
-          ani.d += 2;
-          if (ani.d > 2 * (rect.x2 - rect.x1)) ani.isDone = true;
-        };
+        let ani = new Animation({
+          x: mob.x,
+          y: mob.y,
+          d: 0,
+          draw: function (grender, ctx) {
+            ctx.strokeStyle = '#f00';
+            ctx.beginPath();
+            let rect = grender.cellRect(this.x, this.y);
+            ctx.arc(
+              rect.x1 + ((rect.x2 - rect.x1) / 2),
+              rect.y1 + ((rect.y2 - rect.y1) / 2),
+              this.d,
+              0,
+              2 * Math.PI
+            );
+            ctx.stroke();
+            this.d += 2;
+            if (this.d > 2 * (rect.x2 - rect.x1)) this.isDone = true;
+          },
+        });
 
         this.animations.push(ani);
       }
@@ -152,7 +159,7 @@ const SixEightyEight = class {
 
     this.turn++;
 
-    if (this.turn % 37 == 0) {
+    if (this.turn % 10 == 0) {
       this.addRandomMob();
     }
   }
@@ -164,10 +171,10 @@ const Player = class {
     this.y = y;
   }
 
-  render (ctx, renderer) {
-    ctx.fillStyle   = 'purple';
+  render (grender, ctx) {
+    ctx.fillStyle = 'purple';
 
-    renderer.drawGridCircle(this.x, this.y);
+    grender.drawGridCircle(this, ctx);
   }
 }
 
@@ -216,6 +223,8 @@ const GridRenderer = class {
     const renderer = this.renderer;
     var ctx = renderer.canvas.getContext('2d');
 
+    // TODO apply a box crop around the boundaries
+
     ctx.strokeStyle = '#eee';
     for (let x = 0; x <= this.renderer.game.width; x++) {
       ctx.beginPath();
@@ -232,24 +241,26 @@ const GridRenderer = class {
     }
 
     // The Adventurer
-    renderer.game.player.render(ctx, this);
+    this.renderItem(game.player, ctx);
 
     // Mobs
     renderer.game.mobs.forEach(mob => {
       if (mob.isDead) return;
-
-      mob.render(ctx, this);
+      this.renderItem(mob, ctx);
     });
 
     // Animations
     renderer.game.animations.forEach(ani => {
       if (ani.isDone) return;
 
-      ani.draw(
-        this.renderer.canvas.getContext('2d'),
-        this.cellRect(ani.x, ani.y),
-      );
+      this.renderItem(ani, ctx);
     });
+  }
+
+  renderItem (item, ctx) {
+    ctx.save();
+    item.render(this, ctx);
+    ctx.restore();
   }
 
   cellRect (gridX, gridY) {
@@ -264,15 +275,14 @@ const GridRenderer = class {
     return rect;
   }
 
-  drawGridCircle (gridX, gridY) {
-    const target = this.cellRect(gridX, gridY);
+  drawGridCircle (xy, ctx) {
+    const cell = this.cellRect(xy.x, xy.y);
 
-    var ctx = this.renderer.canvas.getContext('2d');
     ctx.beginPath();
     ctx.arc(
-      target.x1 + ((target.x2 - target.x1) / 2),
-      target.y1 + ((target.y2 - target.y1) / 2),
-      Math.min(target.x2 - target.x1, target.y2 - target.y1) / 2,
+      cell.x1 + ((cell.x2 - cell.x1) / 2),
+      cell.y1 + ((cell.y2 - cell.y1) / 2),
+      Math.min(cell.x2 - cell.x1, cell.y2 - cell.y1) / 2,
       0,
       2 * Math.PI
     );
@@ -280,7 +290,7 @@ const GridRenderer = class {
   }
 }
 
-const Renderer = class {
+const GameRenderer = class {
   constructor (game, canvas) {
     // Consider barfing if canvas not square.
     this.game   = game;
@@ -345,4 +355,4 @@ const Renderer = class {
 };
 
 const game  = new SixEightyEight();
-const rrr   = new Renderer(game, document.getElementById('canvas'));
+const rrr   = new GameRenderer(game, document.getElementById('canvas'));
