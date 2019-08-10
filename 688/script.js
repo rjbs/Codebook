@@ -61,7 +61,8 @@ const Mob = class {
     ctx.strokeStyle = 'orange';
     ctx.fillStyle   = this.type == 'even' ? 'pink' : 'orange';
 
-    grender.drawGridCircle(this, ctx);
+    if (this.type == 'even') ctx.rotate(Math.PI);
+    grender.drawGridTriangle(this, ctx);
   }
 }
 
@@ -130,7 +131,7 @@ const SixEightyEight = class {
             ctx.strokeStyle = '#f00';
             ctx.beginPath();
             let rect = grender.cellRect(this.x, this.y);
-            ctx.arc(rect.xmid, rect.ymid, this.d, 0, 2 * Math.PI);
+            ctx.arc(0, 0, this.d, 0, 2 * Math.PI);
             ctx.stroke();
             this.d += 2;
             if (this.d > 2 * (rect.x2 - rect.x1)) this.isDone = true;
@@ -188,6 +189,8 @@ const GridRenderer = class {
       Math.floor((y2 - y1) / renderer.game.height),
       Math.floor((x2 - x1) / renderer.game.width),
     );
+
+    this.cellRadius = Math.floor(this.cellSide / 2);
 
     let height = this.cellSide * renderer.game.height;
     let width  = this.cellSide * renderer.game.width;
@@ -259,6 +262,10 @@ const GridRenderer = class {
 
   renderItem (item, ctx) {
     ctx.save();
+    if (item.x !== undefined && item.y !== undefined) {
+      const rect = this.cellRect(item.x, item.y);
+      ctx.translate(rect.xmid, rect.ymid);
+    }
     item.render(this, ctx);
     ctx.restore();
   }
@@ -279,29 +286,23 @@ const GridRenderer = class {
   }
 
   drawGridChar (xy, ctx, char) {
-    const rect = this.cellRect(xy.x, xy.y);
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.font = `${this.cellSide}px monospace`;
-    ctx.fillText(char, rect.xmid, rect.ymid);
+    ctx.fillText(char, 0, 0);
   }
 
   drawGridCircle (xy, ctx) {
-    const rect = this.cellRect(xy.x, xy.y);
-
     ctx.beginPath();
-    ctx.arc(rect.xmid, rect.ymid, (this.cellSide / 2) - 2, 0, 2 * Math.PI);
+    ctx.arc(0, 0, (this.cellSide / 2) - 2, 0, 2 * Math.PI);
     ctx.fill();
   }
 
   drawGridTriangle (xy, ctx) {
-    const rect = this.cellRect(xy.x, xy.y);
-
     ctx.beginPath();
-    ctx.moveTo(rect.xmid, rect.y1 + 1);
-    ctx.lineTo(rect.x2 - 1, rect.y2 - 1);
-    ctx.lineTo(rect.x1 + 1, rect.y2 - 1);
-    ctx.moveTo(rect.xmid, rect.y1 + 1);
+    ctx.moveTo(0, - this.cellRadius);
+    ctx.lineTo(  this.cellRadius, this.cellRadius);
+    ctx.lineTo(- this.cellRadius, this.cellRadius);
     ctx.closePath();
     ctx.fill();
   }
@@ -327,6 +328,12 @@ const GameRenderer = class {
     this.gridRenderer = new GridRenderer(this, x1, y1, x2, y2);
 
     window.requestAnimationFrame(this.draw.bind(this));
+  }
+
+  renderItem (item, ctx) {
+    ctx.save();
+    item.render(this, ctx);
+    ctx.restore();
   }
 
   draw() {
