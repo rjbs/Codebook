@@ -1,8 +1,14 @@
 const TextSpinner = class {
-  constructor (text) {
+  constructor (canvas, text) {
     this.pick = ("0123456789"
               + "abcdefghijklmnopqrstuvwxyz"
               + "ABCDEFGHIJKLMNOPQRSTUVWXYZ").split('');
+
+    const ctx = canvas.getContext('2d');
+    ctx.font = '48px monospace';
+    const meas = ctx.measureText(text);
+
+    this.width = meas.width;
 
     this.target  = text;
     this.chars   = text.split('');
@@ -346,11 +352,13 @@ const GameRenderer = class {
       let stringState = this.spinner.nextStringState();
       ctx.font = '48px monospace';
 
+      let spinX = (canvas.width - this.spinner.width) / 2;
+
       ctx.fillStyle = 'red';
-      ctx.fillText(stringState.random, 35, 50);
+      ctx.fillText(stringState.random, spinX, 50);
 
       ctx.fillStyle = 'green';
-      ctx.fillText(stringState.found, 35, 50);
+      ctx.fillText(stringState.found, spinX, 50);
 
       this.gridRenderer.renderGrid();
 
