@@ -190,6 +190,8 @@ const Player = class {
   constructor (x, y) {
     this.x = x;
     this.y = y;
+    this.maxHealth = 3;
+    this.health = this.maxHealth;
   }
 
   render (grender, ctx) {
@@ -385,6 +387,17 @@ const GameRenderer = class {
       ctx.font = '24px monospace';
       ctx.fillStyle = 'blue';
       ctx.fillText(`turn ${this.game.turn}`, 375, 495);
+
+      // Health bar
+      {
+        ctx.save();
+        ctx.translate(10, 475);
+        for (let x = 0; x < this.game.player.maxHealth; x += 1) {
+          ctx.fillStyle = this.game.player.health > x ? 'red' : 'grey';
+          ctx.fillRect(x * 25, 0, 20, 20);
+        }
+        ctx.restore();
+      }
     }
 
     window.requestAnimationFrame(this.draw.bind(this));
