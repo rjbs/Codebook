@@ -39,6 +39,25 @@ const TextSpinner = class {
 
 };
 
+const WubWubLine = class {
+  constructor () {
+  }
+
+  render (renderer, ctx) {
+    // The Wonky Blue Line
+    ctx.beginPath();
+    ctx.strokeStyle = 'blue';
+    ctx.moveTo(0, 45);
+
+    const tock = renderer.tick % 401;
+    const dy   = (tock > 200 ? 400 - tock : tock) - 100;
+    const dx   = dy / 2;
+
+    ctx.bezierCurveTo(200 + dx, 45 - dy, 300 + dx, 45 + dy, 500, 45);
+    ctx.stroke();
+  }
+}
+
 const Animation = class {
   constructor (param) {
     Object.assign(this, param);
@@ -316,7 +335,9 @@ const GameRenderer = class {
 
     this.tick   = 0;
 
-    this.spinner = new TextSpinner("Setec Astronomy");
+    this.widgets = [ new WubWubLine() ];
+
+    this.spinner = new TextSpinner(canvas, "System Online");
 
     // We're going to reserve the top 15% of the canvas and the bottom 5%.
     // Also, the left and right 5%
@@ -344,17 +365,7 @@ const GameRenderer = class {
 
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-      // The Wonky Blue Line
-      ctx.beginPath();
-      ctx.strokeStyle = 'blue';
-      ctx.moveTo(0, 100);
-
-      const tock = this.tick % 401;
-      const dy   = (tock > 200 ? 400 - tock : tock) - 100;
-      const dx   = dy / 2;
-
-      ctx.bezierCurveTo(200 + dx, 100 - dy, 300 + dx, 100 + dy, 500, 100);
-      ctx.stroke();
+      this.widgets.forEach(widget => this.renderItem(widget, ctx));
 
       // The Scrambler
       let stringState = this.spinner.nextStringState();
