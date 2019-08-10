@@ -123,13 +123,7 @@ const SixEightyEight = class {
             ctx.strokeStyle = '#f00';
             ctx.beginPath();
             let rect = grender.cellRect(this.x, this.y);
-            ctx.arc(
-              rect.x1 + ((rect.x2 - rect.x1) / 2),
-              rect.y1 + ((rect.y2 - rect.y1) / 2),
-              this.d,
-              0,
-              2 * Math.PI
-            );
+            ctx.arc(rect.xmid, rect.ymid, this.d, 0, 2 * Math.PI);
             ctx.stroke();
             this.d += 2;
             if (this.d > 2 * (rect.x2 - rect.x1)) this.isDone = true;
@@ -173,8 +167,7 @@ const Player = class {
 
   render (grender, ctx) {
     ctx.fillStyle = 'purple';
-
-    grender.drawGridCircle(this, ctx);
+    grender.drawGridChar(this, ctx, '@');
   }
 }
 
@@ -272,20 +265,25 @@ const GridRenderer = class {
     rect.x2 = rect.x1 + this.cellSide - 1;
     rect.y2 = rect.y1 + this.cellSide - 1;
 
+    rect.xmid = rect.x1 + ((rect.x2 - rect.x1) / 2);
+    rect.ymid = rect.y1 + ((rect.y2 - rect.y1) / 2);
+
     return rect;
+  }
+
+  drawGridChar (xy, ctx, char) {
+    const rect = this.cellRect(xy.x, xy.y);
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.font = `${this.cellSide}px monospace`;
+    ctx.fillText(char, rect.xmid, rect.ymid);
   }
 
   drawGridCircle (xy, ctx) {
     const cell = this.cellRect(xy.x, xy.y);
 
     ctx.beginPath();
-    ctx.arc(
-      cell.x1 + ((cell.x2 - cell.x1) / 2),
-      cell.y1 + ((cell.y2 - cell.y1) / 2),
-      Math.min(cell.x2 - cell.x1, cell.y2 - cell.y1) / 2,
-      0,
-      2 * Math.PI
-    );
+    ctx.arc(cell.xmid, cell.ymid, (this.cellSide / 2) - 2, 0, 2 * Math.PI);
     ctx.fill();
   }
 }
