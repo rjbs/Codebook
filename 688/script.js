@@ -98,7 +98,7 @@ const SixEightyEight = class {
 
     this.animations = [];
 
-    document.addEventListener("keyup", event => {
+    this.actionListener = event => {
       const code = event.code;
       const player = this.player;
 
@@ -111,7 +111,13 @@ const SixEightyEight = class {
       if (code == 'KeyA') { this.takeTurn({ move: { x: -1, y:  0 } }); }
       if (code == 'KeyS') { this.takeTurn({ move: { x:  0, y: +1 } }); }
       if (code == 'KeyD') { this.takeTurn({ move: { x: +1, y:  0 } }); }
-    });
+    };
+
+    document.addEventListener("keyup", this.actionListener);
+  }
+
+  gameOver () {
+    document.removeEventListener('keyup', this.actionListener);
   }
 
   addRandomMob() {
