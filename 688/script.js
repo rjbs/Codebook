@@ -37,6 +37,20 @@ const TextSpinner = class {
     return state;
   }
 
+  render (renderer, ctx) {
+    // The Scrambler
+    let stringState = this.nextStringState();
+
+    ctx.font = '48px monospace';
+
+    let spinX = (renderer.canvas.width - this.width) / 2;
+
+    ctx.fillStyle = 'red';
+    ctx.fillText(stringState.random, spinX, 50);
+
+    ctx.fillStyle = 'green';
+    ctx.fillText(stringState.found, spinX, 50);
+  }
 };
 
 const WubWubLine = class {
@@ -343,9 +357,10 @@ const GameRenderer = class {
 
     this.tick   = 0;
 
-    this.widgets = [ new WubWubLine() ];
-
-    this.spinner = new TextSpinner(canvas, "System Online");
+    this.widgets = [
+      new WubWubLine(),
+      new TextSpinner(canvas, "System Online"),
+    ];
 
     // We're going to reserve the top 15% of the canvas and the bottom 5%.
     // Also, the left and right 5%
@@ -375,17 +390,6 @@ const GameRenderer = class {
 
       this.widgets.forEach(widget => this.renderItem(widget, ctx));
 
-      // The Scrambler
-      let stringState = this.spinner.nextStringState();
-      ctx.font = '48px monospace';
-
-      let spinX = (canvas.width - this.spinner.width) / 2;
-
-      ctx.fillStyle = 'red';
-      ctx.fillText(stringState.random, spinX, 50);
-
-      ctx.fillStyle = 'green';
-      ctx.fillText(stringState.found, spinX, 50);
 
       this.gridRenderer.renderGrid();
 
