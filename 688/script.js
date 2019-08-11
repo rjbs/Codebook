@@ -97,6 +97,32 @@ const Mob = class {
     if (this.type == 'even') ctx.rotate(Math.PI);
     grender.drawGridTriangle(this, ctx);
   }
+
+  takeTurn (game) {
+    if (this.isDead) return;
+
+    if (this.type == 'even' && game.turn % 2 == 0) return;
+    if (this.type == 'odd'  && game.turn % 2 == 1) return;
+
+    const dir  = Math.floor( 4 * Math.random() );
+    const move = dir == 0 ? { x: this.x - 1, y: this.y + 0 }
+               : dir == 1 ? { x: this.x + 0, y: this.y + 1 }
+               : dir == 2 ? { x: this.x + 0, y: this.y - 1 }
+               : dir == 3 ? { x: this.x + 1, y: this.y + 0 }
+               :            undefined; // unreachable
+
+    let cellInfo = game.cellInfo(move.x, move.y);
+
+    if (cellInfo === null) return;
+
+    if (cellInfo.hasPlayer) {
+      game.player.takeDamage(1);
+      return;
+    }
+
+    this.x = move.x;
+    this.y = move.y;
+  }
 }
 
 const SixEightyEight = class {
@@ -105,7 +131,7 @@ const SixEightyEight = class {
     this.height = 16;
     this.turn   = 1;
 
-    this.player = new Player(2, 5);
+    this.player = new Player(this);
 
     this.mobs   = [];
     this.addRandomMob();
@@ -132,24 +158,51 @@ const SixEightyEight = class {
 
   gameOver () {
     document.removeEventListener('keyup', this.actionListener);
+
+    let ani = new Animation({
+      draw: function (grender, ctx) {
+        ctx.strokeStyle = '#c0c';
+
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.font = `64px monospace`;
+        ctx.fillText('GAME OVER', 250, 250);
+      },
+    });
+
+    this.animations.push(ani);
   }
 
   addRandomMob() {
     let newMob = new Mob(
-      Math.floor( Math.random() * 10 ),
-      Math.floor( Math.random() * 10 ),
+      Math.floor( Math.random() * this.width ),
+      Math.floor( Math.random() * this.height ),
     );
 
     this.mobs.push(newMob);
+  }
+
+  cellInfo (x, y) {
+    if (x < 0 || x >= this.width)  return null;
+    if (y < 0 || y >= this.height) return null;
+
+    let cellInfo = { x: y, y: y };
+
+    cellInfo.hasPlayer = this.player.x === x && this.player.y === y;
+
+    return cellInfo;
   }
 
   moveMob (mob, move) {
     const newX = mob.x + move.x;
     const newY = mob.y + move.y;
 
-    // FIXME the "-1" here is bogus, means underlying bug
-    mob.x = Math.min(this.width  -1,  Math.max(0, newX));
-    mob.y = Math.min(this.height -1,  Math.max(0, newY));
+    let cell = this.cellInfo(newX, newY);
+
+    if (cell !== null) {
+      mob.x = Math.min(this.width  -1,  Math.max(0, newX));
+      mob.y = Math.min(this.height -1,  Math.max(0, newY));
+    }
   }
 
   takeTurn(action) {
@@ -157,7 +210,9 @@ const SixEightyEight = class {
       this.moveMob(this.player, action.move);
     }
 
-    this.mobs.forEach(mob => {
+    for (let i = 0; i < this.mobs.length; i++) {
+      const mob = this.mobs[i];
+
       if (mob.x == this.player.x && mob.y == this.player.y) {
         console.log("It dead.");
         mob.isDead = true;
@@ -180,20 +235,10 @@ const SixEightyEight = class {
         this.animations.push(ani);
       }
 
-      if (mob.isDead) return;
+      mob.takeTurn(this);
 
-      if (mob.type == 'even' && this.turn % 2 == 0) return;
-      if (mob.type == 'odd'  && this.turn % 2 == 1) return;
-
-      const dir  = Math.floor( 4 * Math.random() );
-      const move = dir == 0 ? { x: -1, y:  0 }
-                 : dir == 1 ? { x:  0, y: +1 }
-                 : dir == 2 ? { x:  0, y: -1 }
-                 : dir == 3 ? { x: +1, y:  0 }
-                 :            undefined; // unreachable
-
-      this.moveMob(mob, move);
-    });
+      if (this.player.health <= 0) break;
+    }
 
     this.mobs = this.mobs.filter(x => ! x.isDead);
     this.animations = this.animations.filter(x => ! x.isDone);
@@ -207,9 +252,12 @@ const SixEightyEight = class {
 };
 
 const Player = class {
-  constructor (x, y) {
-    this.x = x;
-    this.y = y;
+  constructor (game) {
+    this.x = Math.floor( Math.random() * game.width );
+    this.y = Math.floor( Math.random() * game.height );
+
+    this.game = game;
+
     this.maxHealth = 3;
     this.health = this.maxHealth;
   }
@@ -217,6 +265,29 @@ const Player = class {
   render (grender, ctx) {
     ctx.fillStyle = 'purple';
     grender.drawGridChar(this, ctx, '@');
+  }
+
+  takeDamage (n) {
+    this.health = Math.max(0, this.health - n);
+
+    let ani = new Animation({
+      x: this.x,
+      y: this.y,
+      d: 0,
+      draw: function (grender, ctx) {
+        ctx.strokeStyle = '#f0f';
+        ctx.beginPath();
+        let rect = grender.cellRect(this.x, this.y);
+        ctx.arc(0, 0, this.d, 0, 2 * Math.PI);
+        ctx.stroke();
+        this.d += 2;
+        if (this.d > 2 * (rect.x2 - rect.x1)) this.isDone = true;
+      },
+    });
+
+    this.game.animations.push(ani);
+
+    if (this.health <= 0) this.game.gameOver();
   }
 }
 
