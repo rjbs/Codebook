@@ -189,8 +189,9 @@ const Seeker = class extends Mob {
   }
 
   render (grender, ctx) {
+    const red = 128 + Math.floor(grender.renderer.tick / 1) % 128;
     ctx.fillStyle = this.type == 'even' ^ this.game.turn % 2 == 0
-                  ? '#a00'
+                  ? `rgb(${red}, 0, 0)`
                   : '#888';
 
     ctx.rotate(this.angleToPlayer(this.game));
