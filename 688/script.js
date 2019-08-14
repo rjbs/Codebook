@@ -83,14 +83,15 @@ const Animation = class {
 }
 
 const Mob = class {
-  constructor (x, y) {
+  constructor (game, x, y) {
+    this.game = game;
     this.x = x;
     this.y = y;
   }
 
-  angleToPlayer (game) {
-    const xOffset = this.x - game.player.x;
-    const yOffset = this.y - game.player.y;
+  angleToPlayer () {
+    const xOffset = this.x - this.game.player.x;
+    const yOffset = this.y - this.game.player.y;
 
     return( 2*Math.PI - Math.atan2(xOffset, yOffset));
   }
@@ -99,33 +100,35 @@ const Mob = class {
     throw ".render() called on abstract Mob";
   }
 
-  moveOptions (game) {
+  moveOptions () {
     return [
       { x: this.x - 1, y: this.y + 0 },
       { x: this.x + 0, y: this.y + 1 },
       { x: this.x + 0, y: this.y - 1 },
       { x: this.x + 1, y: this.y + 0 }
-    ].map(m => Object({ x: m.x, y: m.y, cell: game.cellInfo(m.x, m.y) }))
+    ].map(m => Object({ x: m.x, y: m.y, cell: this.game.cellInfo(m.x, m.y) }))
      .filter(option => option.cell !== null);
   }
 
-  takeTurn (game) {
+  pickMove () {
+    throw ".pickMove() called on abstract Mob";
+  }
+
+  takeTurn () {
     if (this.isDead) return;
 
     // TODO make this a generic "action" kind of thinger?
-    const move = this.pickMove(game);
+    const move = this.pickMove(this.game);
 
     // XXX the only reason for the first check is that sometimes we cheat and
     // return x,y with no cell; is that okay? who knows.
     if (move.cell && move.cell.contents) {
       if (move.cell.contents instanceof Player) {
-        game.player.takeDamage(1);
+        this.game.player.takeDamage(1);
       }
 
       return;
     }
-
-    console.log(`moving from ${this.x},${this.y} to ${move.y},${move.y}`);
 
     this.x = move.x;
     this.y = move.y;
@@ -143,26 +146,24 @@ const Roamer = class extends Mob {
     // grender.drawGridTriangle(this, ctx);
   }
 
-  pickMove (game) {
-    const moves = this.moveOptions(game);
+  pickMove () {
+    const moves = this.moveOptions();
     moves.push({ x: this.x, y: this.y });
     return moves[ Math.floor( moves.length * Math.random() ) ];
   }
 };
 
 const Seeker = class extends Mob {
-  constructor (x, y) {
-    super(x, y);
+  constructor (game, x, y) {
+    super(game, x, y);
 
     this.type = Math.random() > 0.5 ? 'even' : 'odd';
   }
 
-  pickMove (game) {
-    if (this.type == 'even' && game.turn % 2 == 0) {
-      return { x: this.x, y: this.y };
-    }
+  pickMove () {
+    const game = this.game;
 
-    if (this.type == 'odd'  && game.turn % 2 == 1) {
+    if (this.type == 'even' ^ game.turn % 2 != 0) {
       return { x: this.x, y: this.y };
     }
 
@@ -252,11 +253,10 @@ const SixEightyEight = class {
     const type = mobTypes[ Math.floor( Math.random() * mobTypes.length ) ];
 
     let newMob = new type(
+      this,
       Math.floor( Math.random() * this.width ),
       Math.floor( Math.random() * this.height ),
     );
-
-    newMob.game = this; // FIXME this is a temporary hack -- rjbs, 2019-08-14
 
     this.mobs.push(newMob);
   }
