@@ -86,16 +86,17 @@ const Mob = class {
   constructor (x, y) {
     this.x = x;
     this.y = y;
+  }
 
-    this.type = Math.random() > 0.5 ? 'even' : 'odd';
+  angleToPlayer (game) {
+    const xOffset = this.x - game.player.x;
+    const yOffset = this.y - game.player.y;
+
+    return( 2*Math.PI - Math.atan2(xOffset, yOffset));
   }
 
   render (grender, ctx) {
-    ctx.strokeStyle = 'orange';
-    ctx.fillStyle   = this.type == 'even' ? 'pink' : 'orange';
-
-    if (this.type == 'even') ctx.rotate(Math.PI);
-    grender.drawGridTriangle(this, ctx);
+    throw ".render() called on abstract Mob";
   }
 
   moveOptions (game) {
@@ -111,8 +112,59 @@ const Mob = class {
   takeTurn (game) {
     if (this.isDead) return;
 
-    if (this.type == 'even' && game.turn % 2 == 0) return;
-    if (this.type == 'odd'  && game.turn % 2 == 1) return;
+    // TODO make this a generic "action" kind of thinger?
+    const move = this.pickMove(game);
+
+    // XXX the only reason for the first check is that sometimes we cheat and
+    // return x,y with no cell; is that okay? who knows.
+    if (move.cell && move.cell.contents) {
+      if (move.cell.contents instanceof Player) {
+        game.player.takeDamage(1);
+      }
+
+      return;
+    }
+
+    console.log(`moving from ${this.x},${this.y} to ${move.y},${move.y}`);
+
+    this.x = move.x;
+    this.y = move.y;
+  }
+}
+
+const Roamer = class extends Mob {
+  render (grender, ctx) {
+    ctx.fillStyle = 'blue';
+    grender.drawGridCircle(this, ctx);
+
+    // if (this.type == 'even') ctx.rotate(Math.PI);
+    //
+    // ctx.rotate(this.angleToPlayer(game));
+    // grender.drawGridTriangle(this, ctx);
+  }
+
+  pickMove (game) {
+    const moves = this.moveOptions(game);
+    moves.push({ x: this.x, y: this.y });
+    return moves[ Math.floor( moves.length * Math.random() ) ];
+  }
+};
+
+const Seeker = class extends Mob {
+  constructor (x, y) {
+    super(x, y);
+
+    this.type = Math.random() > 0.5 ? 'even' : 'odd';
+  }
+
+  pickMove (game) {
+    if (this.type == 'even' && game.turn % 2 == 0) {
+      return { x: this.x, y: this.y };
+    }
+
+    if (this.type == 'odd'  && game.turn % 2 == 1) {
+      return { x: this.x, y: this.y };
+    }
 
     const moves = this.moveOptions(game);
 
@@ -122,24 +174,28 @@ const Mob = class {
 
     let move;
     if (attacks.length) {
-      move = attacks[0];
+      move = attacks[ Math.floor(attacks.length * Math.random() ) ];
     } else {
-      const dir = Math.floor( moves.length * Math.random() );
-      move = moves[dir];
+      move = moves.sort((a,b) => {
+        let aDist = Math.hypot(a.x - game.player.x, a.y - game.player.y);
+        let bDist = Math.hypot(b.x - game.player.x, b.y - game.player.y);
+
+        return(aDist - bDist);
+      })[0];
     }
 
-    if (move.cell.contents) {
-      if (move.cell.contents instanceof Player) {
-        game.player.takeDamage(1);
-      }
-
-      return;
-    }
-
-    this.x = move.x;
-    this.y = move.y;
+    return move;
   }
-}
+
+  render (grender, ctx) {
+    ctx.fillStyle = this.type == 'even' ^ this.game.turn % 2 == 0
+                  ? '#a00'
+                  : '#888';
+
+    ctx.rotate(this.angleToPlayer(this.game));
+    grender.drawGridTriangle(this, ctx);
+  }
+};
 
 const SixEightyEight = class {
   constructor () {
@@ -192,10 +248,15 @@ const SixEightyEight = class {
   }
 
   addRandomMob() {
-    let newMob = new Mob(
+    const mobTypes = [ Roamer, Seeker ];
+    const type = mobTypes[ Math.floor( Math.random() * mobTypes.length ) ];
+
+    let newMob = new type(
       Math.floor( Math.random() * this.width ),
       Math.floor( Math.random() * this.height ),
     );
+
+    newMob.game = this; // FIXME this is a temporary hack -- rjbs, 2019-08-14
 
     this.mobs.push(newMob);
   }
@@ -379,7 +440,7 @@ const GridRenderer = class {
     }
 
     // The Adventurer
-    this.renderItem(game.player, ctx);
+    this.renderItem(this.renderer.game.player, ctx);
 
     // Mobs
     renderer.game.mobs.forEach(mob => {
@@ -435,9 +496,11 @@ const GridRenderer = class {
 
   drawGridTriangle (xy, ctx) {
     ctx.beginPath();
-    ctx.moveTo(0, - this.cellRadius);
-    ctx.lineTo(  this.cellRadius, this.cellRadius);
-    ctx.lineTo(- this.cellRadius, this.cellRadius);
+
+    const radius = 0.80 * this.cellRadius;
+    ctx.moveTo(0, - radius);
+    ctx.lineTo(  radius, radius);
+    ctx.lineTo(- radius, radius);
     ctx.closePath();
     ctx.fill();
   }
@@ -484,7 +547,6 @@ const GameRenderer = class {
 
       this.widgets.forEach(widget => this.renderItem(widget, ctx));
 
-
       this.gridRenderer.renderGrid();
 
       // Turn Count
@@ -508,5 +570,7 @@ const GameRenderer = class {
   }
 };
 
-const game  = new SixEightyEight();
-const rrr   = new GameRenderer(game, document.getElementById('canvas'));
+{
+  const g688  = new SixEightyEight();
+  const rrr   = new GameRenderer(g688, document.getElementById('canvas'));
+}
