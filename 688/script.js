@@ -151,6 +151,8 @@ const SixEightyEight = class {
       if (code == 'KeyA') { this.takeTurn({ move: { x: -1, y:  0 } }); }
       if (code == 'KeyS') { this.takeTurn({ move: { x:  0, y: +1 } }); }
       if (code == 'KeyD') { this.takeTurn({ move: { x: +1, y:  0 } }); }
+
+      if (code == 'Period') { this.takeTurn({ noop: null }); }
     };
 
     document.addEventListener("keyup", this.actionListener);
