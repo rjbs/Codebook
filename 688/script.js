@@ -98,25 +98,41 @@ const Mob = class {
     grender.drawGridTriangle(this, ctx);
   }
 
+  moveOptions (game) {
+    return [
+      { x: this.x - 1, y: this.y + 0 },
+      { x: this.x + 0, y: this.y + 1 },
+      { x: this.x + 0, y: this.y - 1 },
+      { x: this.x + 1, y: this.y + 0 }
+    ].map(m => Object({ x: m.x, y: m.y, cell: game.cellInfo(m.x, m.y) }))
+     .filter(option => option.cell !== null);
+  }
+
   takeTurn (game) {
     if (this.isDead) return;
 
     if (this.type == 'even' && game.turn % 2 == 0) return;
     if (this.type == 'odd'  && game.turn % 2 == 1) return;
 
-    const dir  = Math.floor( 4 * Math.random() );
-    const move = dir == 0 ? { x: this.x - 1, y: this.y + 0 }
-               : dir == 1 ? { x: this.x + 0, y: this.y + 1 }
-               : dir == 2 ? { x: this.x + 0, y: this.y - 1 }
-               : dir == 3 ? { x: this.x + 1, y: this.y + 0 }
-               :            undefined; // unreachable
+    const moves = this.moveOptions(game);
 
-    let cellInfo = game.cellInfo(move.x, move.y);
+    const attacks = moves.filter(
+      m => m.cell.contents && m.cell.contents instanceof Player
+    );
 
-    if (cellInfo === null) return;
+    let move;
+    if (attacks.length) {
+      move = attacks[0];
+    } else {
+      const dir = Math.floor( moves.length * Math.random() );
+      move = moves[dir];
+    }
 
-    if (cellInfo.hasPlayer) {
-      game.player.takeDamage(1);
+    if (move.cell.contents) {
+      if (move.cell.contents instanceof Player) {
+        game.player.takeDamage(1);
+      }
+
       return;
     }
 
@@ -190,7 +206,12 @@ const SixEightyEight = class {
 
     let cellInfo = { x: y, y: y };
 
-    cellInfo.hasPlayer = this.player.x === x && this.player.y === y;
+    if (this.player.x === x && this.player.y === y) {
+      cellInfo.contents = this.player;
+    } else {
+      const m = this.mobs.filter(mob => mob.x == x && mob.y == y);
+      if (m) cellInfo.contents = m[0];
+    }
 
     return cellInfo;
   }
