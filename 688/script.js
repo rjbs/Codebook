@@ -199,6 +199,28 @@ const Seeker = class extends Mob {
   }
 };
 
+const Zapper = class extends Mob {
+  render (grender, ctx) {
+    ctx.fillStyle = '#ee0';
+    ctx.strokeStyle = '#303';
+
+    const radius = Math.floor((grender.cellSide - 8) / 2);
+    ctx.strokeRect(-radius, -2, 1+2*radius, 5);
+    ctx.strokeRect(-2, -radius, 5, 1+2*radius);
+
+    ctx.fillRect(-radius, -2, 1+2*radius, 5);
+    ctx.fillRect(-2, -radius, 5, 1+2*radius);
+  }
+
+  pickMove () {
+    // TODO: calculate can-attack
+    // TODO: move to get into straight line with player
+    const moves = this.moveOptions();
+    moves.push({ x: this.x, y: this.y });
+    return moves[ Math.floor( moves.length * Math.random() ) ];
+  }
+};
+
 const SixEightyEight = class {
   constructor () {
     this.width  = 20;
@@ -250,9 +272,10 @@ const SixEightyEight = class {
   }
 
   addRandomMob() {
-    const mobTypes = [ Roamer, Seeker ];
+    const mobTypes = [ Roamer, Seeker, Zapper ];
     const type = mobTypes[ Math.floor( Math.random() * mobTypes.length ) ];
 
+    // FIXME this allows double-occupied cells -- rjbs, 2019-08-18
     let newMob = new type(
       this,
       Math.floor( Math.random() * this.width ),
