@@ -247,9 +247,15 @@ const Zapper = class extends Mob {
   }
 
   pickMove () {
+    // Given the following positions:   Z   P   Z   Z
+    // ...we don't want the player to be attacked twice.  Assuming the leftmost
+    // zapper goes first, and enlists the second as its ally, then the second
+    // zapper should receive no turn.  The third should find the first
+    // unavailable for alliance. didMove is self-set on a zapper when it moves.
+    // gotMoved is set on an ally when it's used.  -- rjbs, 2019-09-08
+    this.didMove = false;
+
     if (this.gotMoved) {
-      // Zappers attack in pairs.  If another Zapper attacked with us, we don't
-      // get to take a move of our own. -- rjbs, 2019-09-08
       this.gotMoved = false;
       return { action: 'wait' };
     }
@@ -259,6 +265,7 @@ const Zapper = class extends Mob {
 
     for (const mob of this.game.mobs) {
       if ( ! mob instanceof Zapper) continue;
+      if (mob.didMove || mob.gotMoved) continue;
 
       if ( mob.x == this.x
         && mob.x == player.x
@@ -284,12 +291,14 @@ const Zapper = class extends Mob {
     if (possibleAllies.length) {
       const ally = possibleAllies[ Math.floor( possibleAllies.length * Math.random() ) ];
       ally.gotMoved = true;
+      this.didMove  = true;
       return { action: 'attack' };
     }
 
     // TODO: move to get into straight line with player
     const moves = this.moveOptions();
     moves.push({ action: 'wait' });
+    this.didMove = true;
     return moves[ Math.floor( moves.length * Math.random() ) ];
   }
 };
