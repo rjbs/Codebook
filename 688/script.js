@@ -131,7 +131,7 @@ const Mob = class {
       { x: this.x + 0, y: this.y + 1 },
       { x: this.x + 0, y: this.y - 1 },
       { x: this.x + 1, y: this.y + 0 }
-    ].map(m => Object({ x: m.x, y: m.y, cell: this.game.cellInfo(m.x, m.y) }))
+    ].map(m => Object({ action: 'move', x: m.x, y: m.y, cell: this.game.cellInfo(m.x, m.y) }))
      .filter(option => option.cell !== null);
   }
 
@@ -145,18 +145,27 @@ const Mob = class {
     // TODO make this a generic "action" kind of thinger?
     const move = this.pickMove(this.game);
 
-    // XXX the only reason for the first check is that sometimes we cheat and
-    // return x,y with no cell; is that okay? who knows.
-    if (move.cell && move.cell.contents) {
-      if (move.cell.contents instanceof Player) {
-        this.game.player.takeDamage(1);
-      }
+    if (move.action === 'wait') return;
 
+    if (move.action === 'attack') {
+      this.game.player.takeDamage(1);
       return;
     }
 
-    this.x = move.x;
-    this.y = move.y;
+    if (move.action === 'move') {
+      // XXX the only reason for the first check is that sometimes we cheat and
+      // return x,y with no cell; is that okay? who knows.
+      if (move.cell && move.cell.contents) {
+        if (move.cell.contents instanceof Player) {
+          this.game.player.takeDamage(1);
+        }
+
+        return;
+      }
+
+      this.x = move.x;
+      this.y = move.y;
+    }
   }
 }
 
@@ -189,7 +198,7 @@ const Seeker = class extends Mob {
     const game = this.game;
 
     if (this.type == 'even' ^ game.turn % 2 != 0) {
-      return { x: this.x, y: this.y };
+      return { action: 'wait' };
     }
 
     const moves = this.moveOptions(game);
@@ -238,10 +247,49 @@ const Zapper = class extends Mob {
   }
 
   pickMove () {
-    // TODO: calculate can-attack
+    if (this.gotMoved) {
+      // Zappers attack in pairs.  If another Zapper attacked with us, we don't
+      // get to take a move of our own. -- rjbs, 2019-09-08
+      this.gotMoved = false;
+      return { action: 'wait' };
+    }
+
+    const possibleAllies = [];
+    const player = this.game.player;
+
+    for (const mob of this.game.mobs) {
+      if ( ! mob instanceof Zapper) continue;
+
+      if ( mob.x == this.x
+        && mob.x == player.x
+        && mob.y != this.y
+        && ( (mob.y > player.y && this.y < player.y)
+          || (mob.y < player.y && this.y > player.y))
+      ) {
+        possibleAllies.push(mob);
+        continue;
+      }
+
+      if ( mob.y == this.y
+        && mob.y == player.y
+        && mob.x != this.x
+        && ( (mob.x > player.x && this.x < player.x)
+          || (mob.x < player.x && this.x > player.x))
+      ) {
+        possibleAllies.push(mob);
+        continue;
+      }
+    }
+
+    if (possibleAllies.length) {
+      const ally = possibleAllies[ Math.floor( possibleAllies.length * Math.random() ) ];
+      ally.gotMoved = true;
+      return { action: 'attack' };
+    }
+
     // TODO: move to get into straight line with player
     const moves = this.moveOptions();
-    moves.push({ x: this.x, y: this.y });
+    moves.push({ action: 'wait' });
     return moves[ Math.floor( moves.length * Math.random() ) ];
   }
 };
