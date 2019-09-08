@@ -72,6 +72,31 @@ const WubWubLine = class {
   }
 }
 
+const TurnCount = class {
+  constructor () {
+  }
+
+  render (renderer, ctx) {
+    // Turn Count
+    ctx.font = '24px monospace';
+    ctx.fillStyle = 'blue';
+    ctx.fillText(`turn ${renderer.game.turn}`, 375, 495);
+  }
+}
+
+const HealthBar = class {
+  constructor () {
+  }
+
+  render (renderer, ctx) {
+    ctx.translate(10, 475);
+    for (let x = 0; x < renderer.game.player.maxHealth; x += 1) {
+      ctx.fillStyle = renderer.game.player.health > x ? 'red' : 'grey';
+      ctx.fillRect(x * 25, 0, 20, 20);
+    }
+  }
+}
+
 const Animation = class {
   constructor (param) {
     Object.assign(this, param);
@@ -541,6 +566,8 @@ const GameRenderer = class {
     this.widgets = [
       new WubWubLine(),
       new TextSpinner(canvas, "System Online"),
+      new TurnCount(),
+      new HealthBar(),
     ];
 
     // We're going to reserve the top 15% of the canvas and the bottom 5%.
@@ -572,22 +599,6 @@ const GameRenderer = class {
       this.widgets.forEach(widget => this.renderItem(widget, ctx));
 
       this.gridRenderer.renderGrid();
-
-      // Turn Count
-      ctx.font = '24px monospace';
-      ctx.fillStyle = 'blue';
-      ctx.fillText(`turn ${this.game.turn}`, 375, 495);
-
-      // Health bar
-      {
-        ctx.save();
-        ctx.translate(10, 475);
-        for (let x = 0; x < this.game.player.maxHealth; x += 1) {
-          ctx.fillStyle = this.game.player.health > x ? 'red' : 'grey';
-          ctx.fillRect(x * 25, 0, 20, 20);
-        }
-        ctx.restore();
-      }
     }
 
     window.requestAnimationFrame(this.draw.bind(this));
